@@ -4301,23 +4301,3 @@ body {
   max-height: none !important;
   padding-bottom: 120px !important; 
 }
-/* =========================================================
-   SAFE AREA FIX (อัปเดตใหม่: คืนเลย์เอาต์หน้าหลักให้เหมือนเดิมเป๊ะ)
-   ========================================================= */
-/* 1. บังคับให้รูปพื้นหลังยึดจากขอบบนสุดเสมอ (แก้ปัญหาซูมแล้วหัวนักแข่งขาด) 
-   และดันเนื้อหาทั้งหมดหลบรอยบากเฉพาะเท่าที่จำเป็น */
-body {
-  background-position: center top !important;
-  padding-top: env(safe-area-inset-top) !important;
-}
-
-/* 2. ยกเลิกการเว้นระยะของกล่องเนื้อหาแรก (แก้ปัญหาโลโก้ F1 โดนดันลงมาเยอะเกินไป) */
-body > .container:first-of-type {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-/* 3. ดันเฉพาะปุ่มย้อนกลับ (Back) ในหน้าปฏิทิน ให้ลงมาหลบติ่งกล้อง */
-#weekendTimetableModal .top-0 {
-  margin-top: max(env(safe-area-inset-top), 5px) !important;
-}
