@@ -2447,21 +2447,37 @@ async function renderScheduleTab() {
 
     if (isNext) {
       html += `
-        <div class="schedule-card schedule-card-next" ${clickAction} style="cursor: pointer;">
-          <!-- ใช้ posterImgSrc แสดงเป็นพื้นหลังการ์ด NEXT -->
-          <img src="${posterImgSrc}" class="schedule-bg-img" alt="Track" loading="lazy">
-          <div class="sch-next-badge">NEXT</div>
-          <div class="schedule-content">
-            <div>
-              <div class="sch-round gap-2">${flagImgHtml} ROUND ${roundNum}</div>
-              <div class="sch-country">${shortCountryName}</div>
+        <div class="card mb-3 border-0 rounded-4 overflow-hidden position-relative shadow" ${clickAction} style="min-height: 160px; cursor: pointer;">
+          
+          <!-- 1. รูปพื้นหลัง -->
+          <img src="${posterImgSrc}" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center; opacity: 0.8;" alt="${shortCountryName}" loading="lazy">
+          
+          <!-- 2. เงาดำบนและล่าง -->
+          <div class="position-absolute w-100 h-100 z-1" style="background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.85) 100%); pointer-events: none;"></div>
+
+          <!-- 3. เส้นขีดสีแดงขอบขวา และป้าย NEXT ชิ้นเล็กด้านบน -->
+          <div class="position-absolute top-0 end-0 h-100 z-3" style="border-right: 6px solid #e10600;"></div>
+          <div class="position-absolute top-0 end-0 bg-danger text-white px-3 py-1 fw-bold z-3 shadow-sm" style="font-size: 0.75rem; letter-spacing: 1px; border-bottom-left-radius: 10px; margin-right: 6px;">NEXT</div>
+
+          <!-- 4. เนื้อหาด้านซ้ายบน: ธง + Round + ชื่อสนาม -->
+          <div class="position-absolute top-0 start-0 p-3 z-2 w-75">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              ${flagImgHtml}
+              <span class="text-white fw-bold small" style="letter-spacing: 1px;">ROUND ${roundNum}</span>
             </div>
-            <div class="sch-bottom-row">
-              <div class="sch-date-pill">${dateDisplay}</div>
+            <h4 class="text-white fw-bold f1-font mb-0" style="text-shadow: 0 2px 6px rgba(0,0,0,0.9); line-height: 1.2;">${shortCountryName}</h4>
+          </div>
+
+          <!-- 5. วันที่ ย้ายมามุมซ้ายล่างสุด -->
+          <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100">
+            <div class="text-white fw-bold" style="font-size: 0.95rem; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,0.9);">
+              <i class="fa-regular fa-calendar-days text-danger me-2"></i>${dateDisplay}
             </div>
           </div>
+          
         </div>
       `;
+    }
     } else {
       html += `
         <div class="schedule-card" ${clickAction} style="cursor: pointer;">
