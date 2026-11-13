@@ -2447,13 +2447,10 @@ async function openWeekendTimetable(raceId, countryName, officialName, flagCode,
   document.getElementById('wtTrackImg').src = trackImgSrc || '';
   document.getElementById('wtTrackImg').style.display = trackImgSrc ? 'block' : 'none';
 
-  // ดึงข้อมูล Track Info จาก globalRaces เพื่อแสดง Laps / Length 
-  const raceObj = globalRaces.find(r => r.id === raceId);
-  document.getElementById('wtLaps').innerText = "--";
-  document.getElementById('wtLength').innerText = "--";
-  if (raceObj && raceObj.trackInfo) {
-    const lapsMatch = (raceObj.trackInfo.keyNote || "").match(/(\d+)\s*รอบ/);
-    if (lapsMatch) document.getElementById('wtLaps').innerText = lapsMatch[1];
+  // จัดการแสดงผลกรอบผังสนาม (ซ่อนทั้งกรอบ ถ้าไม่มีรูป)
+  const trackContainer = document.getElementById('wtTrackContainer');
+  if (trackContainer) {
+    trackContainer.style.display = trackImgSrc ? 'block' : 'none';
   }
 
   const tlContainer = document.getElementById('wtTimelineContainer');
