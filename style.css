@@ -4301,3 +4301,15 @@ body {
   max-height: none !important;
   padding-bottom: 120px !important; 
 }
+/* =========================================================
+   SAFE AREA FIX (ป้องกันเนื้อหาชนขอบจอด้านบน)
+   ========================================================= */
+/* 1. ดันเนื้อหาหน้าหลักลงมาหลบ Status Bar / รอยบาก */
+body {
+  padding-top: max(env(safe-area-inset-top), 20px) !important;
+}
+
+/* 2. ดันปุ่มย้อนกลับ (Back) และปุ่มปิด ในหน้าปฏิทินให้ลงมาหลบด้วย */
+#weekendTimetableModal .top-0 {
+  margin-top: max(env(safe-area-inset-top), 10px) !important;
+}
