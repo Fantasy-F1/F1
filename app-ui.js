@@ -2477,7 +2477,6 @@ async function renderScheduleTab() {
           
         </div>
       `;
-    }
     } else {
       html += `
         <div class="schedule-card" ${clickAction} style="cursor: pointer;">
