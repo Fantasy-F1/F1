@@ -2447,7 +2447,7 @@ async function renderScheduleTab() {
 
     if (isNext) {
       html += `
-        <div class="card mb-3 border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="min-height: 220px; cursor: pointer;">
+        <div class="card mb-1 border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="min-height: 220px; cursor: pointer;">
           
           <!-- 1. รูปพื้นหลัง (ขยายความสูงเป็น 220px ให้ภาพใหญ่เต็มตา) -->
           <img src="${posterImgSrc}" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center; opacity: 1;" alt="${shortCountryName}" loading="lazy">
@@ -2481,7 +2481,7 @@ async function renderScheduleTab() {
       `;
     } else {
       html += `
-        <div class="card mb-3 border-0 rounded-4 shadow-sm" ${clickAction} style="cursor: pointer; background-color: #1a1d24;">
+        <div class="card mb-1 border-0 rounded-4 shadow-sm" ${clickAction} style="cursor: pointer; background-color: #1a1d24;">
           <div class="card-body p-3">
             
             <!-- 1. ธง + ชื่อสนาม (ปรับให้เล็กลงและอยู่บรรทัดเดียวกัน) -->
