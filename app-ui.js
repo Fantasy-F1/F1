@@ -89,6 +89,23 @@ window.onload = function() {
   loadLatestNews();
   loadDriverStatsAPI();
   updateRadioButtonVisibility();
+
+  // แจ้งเตือนเมื่อสัญญาณอินเทอร์เน็ตมีการเปลี่ยนแปลง
+  window.addEventListener('offline', function() { showToast('สัญญาณสื่อสารขาดหาย (OFFLINE)', 'error'); });
+  window.addEventListener('online', function() { showToast('เชื่อมต่อสัญญาณอีกครั้ง (ONLINE)', 'success'); });
+
+  // 🎯 ดันแถบเมนูให้อยู่เหนือ Modal เฉพาะตอนเปิดดูตารางเวลา
+  const wtModalEl = document.getElementById('weekendTimetableModal');
+  if (wtModalEl) {
+    wtModalEl.addEventListener('show.bs.modal', function() {
+      const nav = document.querySelector('.f1-nav-tabs');
+      if (nav) nav.style.setProperty('z-index', '1060', 'important'); // ดันเมนูขึ้นมาทับกระจกดำ
+    });
+    wtModalEl.addEventListener('hidden.bs.modal', function() {
+      const nav = document.querySelector('.f1-nav-tabs');
+      if (nav) nav.style.setProperty('z-index', '1050', 'important'); // คืนค่าเดิมเมื่อปิด
+    });
+  }
 };
 
 function buildDriverGrid() {
@@ -357,6 +374,14 @@ function confirmLoginGate() {
 
 function showTab(tabId, el) { 
   triggerHaptic(); 
+
+  // 🎯 ปิด Modal ทั้งหมดที่เปิดอยู่ เมื่อกดเปลี่ยนแท็บที่เมนูด้านล่าง
+  const openModals = document.querySelectorAll('.modal.show');
+  openModals.forEach(modalEl => {
+    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+    if (modalInstance) modalInstance.hide();
+  });
+
   document.querySelectorAll('.tab-pane-custom').forEach(function(p) { p.style.display = 'none'; }); 
   document.querySelectorAll('.f1-nav-link').forEach(function(l) { l.classList.remove('active'); }); 
   document.getElementById(tabId).style.display = 'block'; 
