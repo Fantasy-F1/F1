@@ -4301,3 +4301,39 @@ body {
   max-height: none !important;
   padding-bottom: 120px !important; 
 }
+/* =========================================================
+   ปุ่ม RACE ARCHIVE (สไตล์ Electric Cyan HUD Glassmorphism)
+   ========================================================= */
+.btn-archive-hud {
+  background: rgba(13, 20, 30, 0.6); /* พื้นหลังโทน Deep Navy โปร่งแสง */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 210, 255, 0.35); /* ขอบสี Electric Cyan แบบบาง */
+  color: #00d2ff;
+  border-radius: 10px;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 210, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* เอฟเฟกต์เวลาแตะหรือนำเมาส์ไปชี้ (Hover/Active) */
+.btn-archive-hud:hover, .btn-archive-hud:active {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: #00d2ff;
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(0, 210, 255, 0.35), inset 0 0 10px rgba(0, 210, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-archive-hud i {
+  font-size: 1.15rem;
+}
