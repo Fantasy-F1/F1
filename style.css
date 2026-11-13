@@ -4276,3 +4276,28 @@ body {
   font-size: 0.85rem;
   color: #cbd5e1;
 }
+/* =========================================================
+   FULL SCREEN WEEKEND TIMETABLE MODAL (APP STYLE)
+   ========================================================= */
+/* จัดให้ชิดขอบจอและจำกัดความกว้างให้สวยงามพอดี */
+#weekendTimetableModal .modal-dialog-bottom {
+  margin: 0 auto !important;
+  max-width: 540px !important; /* ล็อกขนาดไม่ให้เทอะทะเมื่อเปิดในจอคอม */
+  height: 100% !important;
+  display: flex;
+  align-items: flex-end; /* ให้สไลด์ขึ้นจากด้านล่าง */
+}
+
+/* ขยาย Modal ให้สูงเต็มจอ 100% (ไร้ขอบโค้ง) */
+#weekendTimetableModal .modal-content {
+  height: 100vh !important; /* ความสูง 100% ของจอ */
+  height: 100dvh !important; /* ปรับอัตโนมัติตามแถบเครื่องมือของมือถือรุ่นใหม่ */
+  border-radius: 0 !important; /* ลบขอบโค้งออก ให้แนบสนิทขอบจอ */
+  border: none !important;
+}
+
+/* ยกเลิกการจำกัดความสูงเดิม และเว้นที่ว่างด้านล่าง 110px เพื่อไม่ให้เมนูลอยบังปุ่ม */
+#weekendTimetableModal .modal-body {
+  max-height: none !important;
+  padding-bottom: 120px !important; 
+}
