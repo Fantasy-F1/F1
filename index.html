@@ -862,30 +862,26 @@
     <div class="modal-dialog modal-dialog-bottom">
       <div class="modal-content f1-card border-secondary text-white" style="background: #0d0e12 !important;">
         <!-- Header: รูปปกและชื่อสนาม -->
-        <div class="position-relative" style="height: 120px; border-radius: 20px 20px 0 0; overflow: hidden;">
-          <img id="wtBgImg" src="" class="position-absolute w-100 h-100" style="object-fit: cover; opacity: 0.3;" alt="">
+        <!-- Header: รูปปกและชื่อสนาม (ขยายใหญ่สไตล์ Cinematic) -->
+        <div class="position-relative" style="height: 180px; border-radius: 20px 20px 0 0; overflow: hidden;">
+          <img id="wtBgImg" src="" class="position-absolute w-100 h-100" style="object-fit: cover; opacity: 0.65;" alt="">
           <div class="position-absolute top-0 end-0 p-3 z-3">
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="filter: drop-shadow(0 0 4px rgba(0,0,0,0.8));"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="filter: drop-shadow(0 0 5px rgba(0,0,0,0.9));"></button>
           </div>
-          <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100" style="background: linear-gradient(0deg, #0d0e12 0%, transparent 100%);">
+          <!-- Gradient เข้มๆ ด้านล่างดันตัวหนังสือให้ลอยเด่น -->
+          <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100" style="background: linear-gradient(0deg, #0d0e12 0%, rgba(13,14,18,0.85) 60%, transparent 100%);">
             <div class="d-flex align-items-center gap-2 mb-1">
-              <img id="wtFlagImg" src="" class="sch-flag" style="width: 28px; height: 18px;" alt="">
-              <h4 id="wtCountryName" class="m-0 text-white fw-bold f1-font" style="letter-spacing: 1px;">COUNTRY</h4>
+              <img id="wtFlagImg" src="" class="sch-flag" style="width: 28px; height: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);" alt="">
+              <h4 id="wtCountryName" class="m-0 text-white fw-bold f1-font" style="letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,0.9);">COUNTRY</h4>
             </div>
-            <div id="wtOfficialName" class="small text-secondary fw-bold" style="font-size: 0.65rem; text-transform: uppercase;">OFFICIAL NAME</div>
+            <div id="wtOfficialName" class="small text-light fw-bold" style="font-size: 0.65rem; text-transform: uppercase; text-shadow: 0 2px 6px rgba(0,0,0,0.9);">OFFICIAL NAME</div>
           </div>
         </div>
 
         <div class="modal-body p-3" style="max-height: 70vh; overflow-y: auto;">
-          <!-- Track Snapshot -->
-          <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-secondary">
-            <div class="w-50 text-center">
-              <img id="wtTrackImg" src="" class="img-fluid sch-track-outline" style="max-height: 80px;" alt="Layout">
-            </div>
-            <div class="w-50 ps-3">
-              <div class="mb-2"><span class="badge bg-dark border border-secondary text-white w-100 text-start py-2"><i class="fa-solid fa-flag-checkered text-secondary me-2"></i><span id="wtLaps">--</span> LAPS</span></div>
-              <div><span class="badge bg-dark border border-secondary text-white w-100 text-start py-2"><i class="fa-solid fa-road text-secondary me-2"></i><span id="wtLength">--</span> KM</span></div>
-            </div>
+          <!-- Track Snapshot (โชว์เต็มพื้นที่, จัดกึ่งกลาง, เรืองแสง) -->
+          <div id="wtTrackContainer" class="text-center mb-4 pb-3 border-bottom border-secondary">
+            <img id="wtTrackImg" src="" class="img-fluid mx-auto" style="max-height: 150px; width: auto; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255,255,255,0.4));" alt="Layout">
           </div>
 
           <!-- Weekend Timeline -->
