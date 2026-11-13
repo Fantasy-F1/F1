@@ -387,7 +387,7 @@ function showTab(tabId, el) {
   document.getElementById(tabId).style.display = 'block'; 
   el.classList.add('active'); 
 
-  // 🎯 ควบคุมการแสดงผลปุ่ม Radio (แสดงเฉพาะหน้าทายผล tab-pred เท่านั้น)
+  // 🎯 ควบคุมการแสดงผลปุ่ม Radio (แสดงเฉพาะหน้าทายผล tab-pred)
   const radioBtn = document.getElementById('btnTeamRadio');
   if (radioBtn) {
     if (tabId === 'tab-pred') {
@@ -397,8 +397,27 @@ function showTab(tabId, el) {
       closeTeamRadio();
     }
   }
-}
 
+  // 🚀 [ใหม่] เลื่อนหน้าจอไปที่สนาม NEXT อัตโนมัติเมื่อกดแท็บ SCHEDULE
+  // (หมายเหตุ: ถ้า ID แท็บตารางเวลาของคุณไม่ใช่ 'tab-schedule' ให้แก้ชื่อให้ตรงนะครับ)
+  if (tabId === 'tab-schedule') { 
+    setTimeout(function() {
+      const scheduleContainer = document.getElementById(tabId);
+      if (scheduleContainer) {
+        // ค้นหา Element ทุกตัวในหน้านี้
+        const elements = scheduleContainer.querySelectorAll('*');
+        for (let i = 0; i < elements.length; i++) {
+          // ดักจับคำว่า 'NEXT' ที่เราใช้เป็นป้าย
+          if (elements[i].textContent.trim() === 'NEXT') {
+            // เลื่อนการ์ดนั้นมาไว้ตรงกลางจอ (center) แบบนุ่มนวล (smooth)
+            elements[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            break; // เจอแล้วหยุดหา
+          }
+        }
+      }
+    }, 150); // หน่วงเวลาเล็กน้อย 0.15 วิ ให้หน้าต่างแสดงผลเสร็จก่อนแล้วค่อยเลื่อน
+  }
+}
 function forceRefreshData() { 
   if (isRefreshing) return;
   isRefreshing = true;
