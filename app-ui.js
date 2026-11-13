@@ -2447,31 +2447,33 @@ async function renderScheduleTab() {
 
     if (isNext) {
       html += `
-        <div class="card mb-3 border-0 rounded-4 overflow-hidden position-relative shadow" ${clickAction} style="min-height: 160px; cursor: pointer;">
+        <div class="card mb-3 border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="min-height: 220px; cursor: pointer;">
           
-          <!-- 1. รูปพื้นหลัง -->
-          <img src="${posterImgSrc}" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center; opacity: 0.8;" alt="${shortCountryName}" loading="lazy">
+          <!-- 1. รูปพื้นหลัง (ขยายความสูงเป็น 220px ให้ภาพใหญ่เต็มตา) -->
+          <img src="${posterImgSrc}" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center; opacity: 1;" alt="${shortCountryName}" loading="lazy">
           
-          <!-- 2. เงาดำบนและล่าง -->
-          <div class="position-absolute w-100 h-100 z-1" style="background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.85) 100%); pointer-events: none;"></div>
+          <!-- 2. เงาดำไล่ระดับ เพื่อให้ตัวหนังสือลอยเด่นแต่ไม่บังความสวยของรูป -->
+          <div class="position-absolute w-100 h-100 z-1" style="background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 40%, transparent 60%, rgba(0,0,0,0.9) 100%); pointer-events: none;"></div>
 
-          <!-- 3. เส้นขีดสีแดงขอบขวา และป้าย NEXT ชิ้นเล็กด้านบน -->
-          <div class="position-absolute top-0 end-0 h-100 z-3" style="border-right: 6px solid #e10600;"></div>
-          <div class="position-absolute top-0 end-0 bg-danger text-white px-3 py-1 fw-bold z-3 shadow-sm" style="font-size: 0.75rem; letter-spacing: 1px; border-bottom-left-radius: 10px; margin-right: 6px;">NEXT</div>
+          <!-- 3. ป้าย NEXT สีแดงสด มุมขวาบน (ปรับดีไซน์ใหม่) -->
+          <div class="position-absolute top-0 end-0 z-3 m-3">
+            <span class="badge text-white px-3 py-2 shadow" style="background-color: #e10600; font-size: 0.85rem; letter-spacing: 1.5px; border-radius: 6px;">NEXT</span>
+          </div>
 
           <!-- 4. เนื้อหาด้านซ้ายบน: ธง + Round + ชื่อสนาม -->
           <div class="position-absolute top-0 start-0 p-3 z-2 w-75">
             <div class="d-flex align-items-center gap-2 mb-1">
               ${flagImgHtml}
-              <span class="text-white fw-bold small" style="letter-spacing: 1px;">ROUND ${roundNum}</span>
+              <span class="text-white fw-bold small" style="letter-spacing: 1px; text-transform: uppercase;">ROUND ${roundNum}</span>
             </div>
-            <h4 class="text-white fw-bold f1-font mb-0" style="text-shadow: 0 2px 6px rgba(0,0,0,0.9); line-height: 1.2;">${shortCountryName}</h4>
+            <!-- ขยายชื่อสนามให้ใหญ่ขึ้น (h3) ตามเรฟเฟอเรนซ์ -->
+            <h3 class="text-white fw-bold f1-font mb-0 mt-1" style="text-shadow: 0 2px 8px rgba(0,0,0,0.9); line-height: 1.1; letter-spacing: 0.5px;">${shortCountryName}</h3>
           </div>
 
-          <!-- 5. วันที่ ย้ายมามุมซ้ายล่างสุด -->
+          <!-- 5. วันที่ ย้ายมามุมซ้ายล่างสุด (สไตล์คลีนๆ ไร้ไอคอน) -->
           <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100">
-            <div class="text-white fw-bold" style="font-size: 0.95rem; letter-spacing: 1px; text-shadow: 0 2px 6px rgba(0,0,0,0.9);">
-              <i class="fa-regular fa-calendar-days text-danger me-2"></i>${dateDisplay}
+            <div class="text-white fw-bold f1-font" style="font-size: 1.1rem; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">
+              ${dateDisplay}
             </div>
           </div>
           
