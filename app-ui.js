@@ -2392,16 +2392,20 @@ async function renderScheduleTab() {
       else dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} ${monthNames[dtStart.getMonth()]} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
     }
 
-    const trackImgSrc = (race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '';
+   const trackImgSrc = (race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '';
     const bgImgSrc = (race.media && race.media.trackImg) ? getDriveDirectLink(race.media.trackImg) : 'https://lh3.googleusercontent.com/d/1UPM7PH4G6QD3W-9YFb_UTcLFsLWZ2fAj';
     
-    // ผูก Event Onclick เพื่อเปิด Bottom Sheet
-    const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${bgImgSrc}', '${trackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
+    // ดึงรูปโปสเตอร์จากคอลัมน์ I (ถ้าไม่ได้ใส่ไว้ ให้กลับไปใช้รูปปกสนาม bgImgSrc แทน)
+    const posterImgSrc = (race.media && race.media.schedulePosterImg) ? getDriveDirectLink(race.media.schedulePosterImg) : bgImgSrc;
+    
+    // ผูก Event Onclick ส่ง posterImgSrc ไปแสดงใน Bottom Sheet
+    const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${posterImgSrc}', '${trackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
 
     if (isNext) {
       html += `
         <div class="schedule-card schedule-card-next" ${clickAction} style="cursor: pointer;">
-          <img src="${bgImgSrc}" class="schedule-bg-img" alt="Track" loading="lazy">
+          <!-- ใช้ posterImgSrc แสดงเป็นพื้นหลังการ์ด NEXT -->
+          <img src="${posterImgSrc}" class="schedule-bg-img" alt="Track" loading="lazy">
           <div class="sch-next-badge">NEXT</div>
           <div class="schedule-content">
             <div>
