@@ -2367,12 +2367,21 @@ let weekendTimetableModalInstance = null;
 let currentViewingRaceId = null;
 
 const COUNTRY_FLAGS = {
-  "bahrain": "bh", "saudi arabia": "sa", "australia": "au",
-  "japan": "jp", "china": "cn", "miami": "us", "imola": "it", "emilia romagna": "it",
-  "monaco": "mc", "canada": "ca", "spain": "es", "austria": "at",
-  "great britain": "gb", "hungary": "hu", "belgium": "be", "netherlands": "nl",
-  "italy": "it", "azerbaijan": "az", "singapore": "sg", "united states": "us", "austin": "us",
-  "mexico": "mx", "brazil": "br", "las vegas": "us", "qatar": "qa", "abu dhabi": "ae"
+  "bahrain": "bh", "saudi arabia": "sa", "australia": "au", "australian": "au",
+  "japan": "jp", "japanese": "jp", "china": "cn", "chinese": "cn", 
+  "miami": "us", "imola": "it", "emilia romagna": "it",
+  "monaco": "mc", "canada": "ca", "canadian": "ca", 
+  "spain": "es", "spanish": "es", "austria": "at", "austrian": "at",
+  "great britain": "gb", "british": "gb", "silverstone": "gb",
+  "hungary": "hu", "hungarian": "hu", 
+  "belgium": "be", "belgian": "be", 
+  "netherlands": "nl", "dutch": "nl",
+  "italy": "it", "italian": "it", 
+  "azerbaijan": "az", "singapore": "sg", 
+  "united states": "us", "austin": "us", "las vegas": "us",
+  "mexico": "mx", "mexican": "mx", "mexico city": "mx",
+  "brazil": "br", "brazilian": "br", "sao paulo": "br",
+  "qatar": "qa", "abu dhabi": "ae"
 };
 
 async function renderScheduleTab() {
@@ -2382,7 +2391,10 @@ async function renderScheduleTab() {
   const now = new Date();
   let nextRaceId = null;
 
-  const upcomingRaces = globalRaces.filter(r => r.deadline && new Date(r.deadline) > now);
+  // 🎯 [เพิ่มใหม่] คัดกรองเอาเฉพาะแถวที่เป็น Main Race เพื่อไม่ให้การ์ดแสดงเบิ้ลกับแถว Sprint
+  const weekendRaces = globalRaces.filter(r => r.id.includes('-MAIN') || r.type === 'Main');
+
+  const upcomingRaces = weekendRaces.filter(r => r.deadline && new Date(r.deadline) > now);
   if (upcomingRaces.length > 0) nextRaceId = upcomingRaces[0].id;
 
   let openF1Meetings = [];
@@ -2398,7 +2410,7 @@ async function renderScheduleTab() {
 
   let html = '';
   
-  globalRaces.forEach((race, index) => {
+  weekendRaces.forEach((race, index) => {
     const isNext = race.id === nextRaceId;
     const roundNum = String(index + 1);
     
