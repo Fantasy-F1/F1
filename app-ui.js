@@ -550,6 +550,8 @@ function renderUI(data) {
       finishedSelect.innerHTML = '<option value="" disabled selected>-- เลือกสนาม --</option>' + calcRaces.map(function(r) { return '<option value="' + r.id + '">🏁 ' + r.name + '</option>'; }).join(''); 
     }
   }
+  // เรียกใช้ฟังก์ชันวาดหน้าปฏิทิน
+      renderScheduleTab();
 }
 
 function loadData(ignoreCache = false) {
@@ -2313,4 +2315,215 @@ function closeTeamRadio() {
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
   }
+}
+// ==========================================
+// 🗓️ SCHEDULE TAB RENDERER & TIMETABLE MODAL
+// ==========================================
+let weekendTimetableModalInstance = null;
+let currentViewingRaceId = null;
+
+const COUNTRY_FLAGS = {
+  "bahrain": "bh", "saudi arabia": "sa", "australia": "au",
+  "japan": "jp", "china": "cn", "miami": "us", "imola": "it", "emilia romagna": "it",
+  "monaco": "mc", "canada": "ca", "spain": "es", "austria": "at",
+  "great britain": "gb", "hungary": "hu", "belgium": "be", "netherlands": "nl",
+  "italy": "it", "azerbaijan": "az", "singapore": "sg", "united states": "us", "austin": "us",
+  "mexico": "mx", "brazil": "br", "las vegas": "us", "qatar": "qa", "abu dhabi": "ae"
+};
+
+async function renderScheduleTab() {
+  const container = document.getElementById('scheduleListContainer');
+  if (!container || !globalRaces || globalRaces.length === 0) return;
+
+  const now = new Date();
+  let nextRaceId = null;
+
+  const upcomingRaces = globalRaces.filter(r => r.deadline && new Date(r.deadline) > now);
+  if (upcomingRaces.length > 0) nextRaceId = upcomingRaces[0].id;
+
+  let openF1Meetings = [];
+  try {
+    const cached = sessionStorage.getItem('openF1_meetings_2026');
+    if (cached) openF1Meetings = JSON.parse(cached);
+    else {
+      const res = await fetch('https://api.openf1.org/v1/meetings?year=2026');
+      openF1Meetings = await res.json();
+      sessionStorage.setItem('openF1_meetings_2026', JSON.stringify(openF1Meetings));
+    }
+  } catch (e) { console.error("API Error:", e); }
+
+  let html = '';
+  
+  globalRaces.forEach((race, index) => {
+    const isNext = race.id === nextRaceId;
+    const roundNum = String(index + 1);
+    
+    const apiMatch = openF1Meetings.find(m => 
+      race.name.toLowerCase().includes(m.meeting_name.toLowerCase()) || 
+      m.meeting_name.toLowerCase().includes(race.name.toLowerCase().replace(' grand prix', ''))
+    ) || openF1Meetings[index];
+
+    const officialName = apiMatch && apiMatch.meeting_official_name ? apiMatch.meeting_official_name : (race.type === 'Sprint' ? 'FORMULA 1 SPRINT WEEKEND 2026' : 'FORMULA 1 GRAND PRIX 2026');
+    const shortCountryName = apiMatch && apiMatch.meeting_name ? apiMatch.meeting_name : race.name;
+
+    let flagCode = "un"; 
+    Object.keys(COUNTRY_FLAGS).forEach(key => {
+      if (shortCountryName.toLowerCase().includes(key)) flagCode = COUNTRY_FLAGS[key];
+    });
+    const flagImgHtml = `<img src="https://flagcdn.com/w40/${flagCode}.png" class="sch-flag" alt="${shortCountryName}">`;
+
+    let dateDisplay = "TBC";
+    const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+    if (apiMatch && apiMatch.date_start) {
+      const dtStart = new Date(apiMatch.date_start);
+      const dtEnd = new Date(dtStart);
+      dtEnd.setDate(dtStart.getDate() + 2); 
+      if (dtStart.getMonth() === dtEnd.getMonth()) {
+        dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
+      } else {
+        dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} ${monthNames[dtStart.getMonth()]} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
+      }
+    } else if (race.deadline) {
+      const dtEnd = new Date(race.deadline);
+      const dtStart = new Date(dtEnd);
+      dtStart.setDate(dtEnd.getDate() - 2); 
+      if (dtStart.getMonth() === dtEnd.getMonth()) dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
+      else dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} ${monthNames[dtStart.getMonth()]} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
+    }
+
+    const trackImgSrc = (race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '';
+    const bgImgSrc = (race.media && race.media.trackImg) ? getDriveDirectLink(race.media.trackImg) : 'https://lh3.googleusercontent.com/d/1UPM7PH4G6QD3W-9YFb_UTcLFsLWZ2fAj';
+    
+    // ผูก Event Onclick เพื่อเปิด Bottom Sheet
+    const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${bgImgSrc}', '${trackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
+
+    if (isNext) {
+      html += `
+        <div class="schedule-card schedule-card-next" ${clickAction} style="cursor: pointer;">
+          <img src="${bgImgSrc}" class="schedule-bg-img" alt="Track" loading="lazy">
+          <div class="sch-next-badge">NEXT</div>
+          <div class="schedule-content">
+            <div>
+              <div class="sch-round gap-2">${flagImgHtml} ROUND ${roundNum}</div>
+              <div class="sch-country">${shortCountryName}</div>
+            </div>
+            <div class="sch-bottom-row">
+              <div class="sch-date-pill">${dateDisplay}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="schedule-card" ${clickAction} style="cursor: pointer;">
+          <div class="schedule-content">
+            <div>
+              <div class="sch-round">ROUND ${roundNum}</div>
+              <div class="sch-title-group">${flagImgHtml}<div class="sch-country">${shortCountryName}</div></div>
+              <div class="sch-full-name">${officialName}</div>
+            </div>
+            <div class="sch-bottom-row">
+              <div class="sch-date-pill"><i class="fa-solid fa-flag-checkered me-2"></i>${dateDisplay}</div>
+              ${trackImgSrc ? `<img src="${trackImgSrc}" class="sch-track-outline" alt="Layout" loading="lazy">` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  });
+  container.innerHTML = html;
+}
+
+async function openWeekendTimetable(raceId, countryName, officialName, flagCode, bgImgSrc, trackImgSrc, meetingKey) {
+  triggerHaptic();
+  currentViewingRaceId = raceId;
+
+  // กำหนด UI พื้นฐาน
+  document.getElementById('wtCountryName').innerText = countryName;
+  document.getElementById('wtOfficialName').innerText = officialName;
+  document.getElementById('wtFlagImg').src = `https://flagcdn.com/w40/${flagCode}.png`;
+  document.getElementById('wtBgImg').src = bgImgSrc;
+  document.getElementById('wtTrackImg').src = trackImgSrc || '';
+  document.getElementById('wtTrackImg').style.display = trackImgSrc ? 'block' : 'none';
+
+  // ดึงข้อมูล Track Info จาก globalRaces เพื่อแสดง Laps / Length 
+  const raceObj = globalRaces.find(r => r.id === raceId);
+  document.getElementById('wtLaps').innerText = "--";
+  document.getElementById('wtLength').innerText = "--";
+  if (raceObj && raceObj.trackInfo) {
+    const lapsMatch = (raceObj.trackInfo.keyNote || "").match(/(\d+)\s*รอบ/);
+    if (lapsMatch) document.getElementById('wtLaps').innerText = lapsMatch[1];
+  }
+
+  const tlContainer = document.getElementById('wtTimelineContainer');
+  tlContainer.innerHTML = '<div class="text-center py-4"><i class="fa-solid fa-spinner fa-spin text-danger fs-3 mb-2"></i><div class="small text-secondary">LOADING SESSIONS...</div></div>';
+
+  if (!weekendTimetableModalInstance) {
+    weekendTimetableModalInstance = new bootstrap.Modal(document.getElementById('weekendTimetableModal'));
+  }
+  weekendTimetableModalInstance.show();
+
+  // ดึงข้อมูลตารางเวลาแต่ละ Session จาก API
+  if (meetingKey) {
+    try {
+      const res = await fetch(`https://api.openf1.org/v1/sessions?meeting_key=${meetingKey}`);
+      const sessions = await res.json();
+      sessions.sort((a, b) => new Date(a.date_start) - new Date(b.date_start));
+
+      let timelineHtml = '';
+      const days = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+      
+      sessions.forEach(s => {
+        const dt = new Date(s.date_start);
+        const dayStr = `${days[dt.getDay()].substring(0,3)} ${String(dt.getDate()).padStart(2,'0')} ${dt.toLocaleString('en-US', {month: 'short'}).toUpperCase()}`;
+        const timeStr = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+        
+        let typeClass = '';
+        if (s.session_name.toLowerCase().includes('race')) typeClass = 'tl-race';
+        else if (s.session_name.toLowerCase().includes('qualifying')) typeClass = 'tl-quali';
+
+        timelineHtml += `
+          <div class="tl-item ${typeClass}">
+            <div class="tl-day">${dayStr}</div>
+            <div class="tl-content">
+              <div class="tl-session">${s.session_name.toUpperCase()}</div>
+              <div class="tl-time"><i class="fa-regular fa-clock me-1"></i>${timeStr}</div>
+            </div>
+          </div>
+        `;
+      });
+
+      tlContainer.innerHTML = timelineHtml || '<div class="text-secondary small text-center py-3">ยังไม่มีกำหนดการเซสชัน</div>';
+    } catch (e) {
+      tlContainer.innerHTML = '<div class="text-danger small text-center py-3">ไม่สามารถดึงตารางเวลาได้</div>';
+    }
+  } else {
+    tlContainer.innerHTML = '<div class="text-secondary small text-center py-3">ตารางเวลายังไม่ถูกประกาศ</div>';
+  }
+}
+
+// ฟังก์ชันปุ่มลัด: ปิดตารางเวลา แล้วพาวาร์ปไปแท็บ Telemetry เพื่อดู Archive สนามนั้น
+function jumpToArchiveFromSchedule() {
+  triggerHaptic();
+  weekendTimetableModalInstance.hide();
+  
+  // รอ Modal ปิดสนิทก่อนสลับแท็บ
+  setTimeout(() => {
+    // 1. สลับไปหน้า Telemetry
+    const telemetryTabBtn = document.querySelectorAll('.f1-nav-link')[2]; 
+    showTab('tab-center', telemetryTabBtn);
+    
+    // 2. ปรับค่า Dropdown ของ Archive ให้ตรงกับสนามที่กดมา
+    const archiveSelect = document.getElementById('sel2025Race');
+    if (archiveSelect && currentViewingRaceId) {
+      archiveSelect.value = currentViewingRaceId;
+      on2025RaceChange(); 
+    }
+    
+    // 3. เลื่อนหน้าจอลงไปที่ส่วน Archive
+    const archiveHeader = document.getElementById('content2025');
+    if (archiveHeader) archiveHeader.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  }, 300);
 }
