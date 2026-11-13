@@ -863,21 +863,24 @@
       <div class="modal-content f1-card border-secondary text-white" style="background: #0d0e12 !important;">
         <!-- Header: รูปปกและชื่อสนาม -->
         <!-- Header: รูปปกและชื่อสนาม (ขยายใหญ่สไตล์ Cinematic) -->
-        <div class="position-relative" style="height: 280px; overflow: hidden; background-color: #000;">
-          <img id="wtBgImg" src="" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center top; opacity: 0.85;" alt="">
+        <!-- 1. เพิ่มความสูงเป็น 340px เพื่อดันข้อความให้ต่ำลงมาอีก -->
+        <div class="position-relative" style="height: 340px; overflow: hidden; background-color: #000;">
           
-          <!-- 🎯 แก้สีตัดกัน: Gradient ไล่จากสีดำสนิท (#000000) จากขอบบนสุด เพื่อให้เฟดกลืนไปกับขอบจอมือถือ -->
-          <div class="position-absolute top-0 start-0 w-100 h-100 z-1" style="background: linear-gradient(180deg, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 15%, transparent 35%); pointer-events: none;"></div>
+          <!-- 2. ปรับ object-position เป็น center 30px เพื่อเลื่อนตัวรูปภาพลงมาจากขอบจอด้านบน -->
+          <img id="wtBgImg" src="" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center 30px; opacity: 0.85;" alt="">
+          
+          <!-- เงาดำโปร่งแสงด้านบน (กันตัวเลขแบตเตอรี่กลืนกับรูป) -->
+          <div class="position-absolute top-0 start-0 w-100 h-100 z-1" style="background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 20%); pointer-events: none;"></div>
 
-          <!-- ปุ่ม Back มุมซ้ายบน (เพิ่ม mt-2 ให้ขยับลงมาหลบขอบติ่งจอมือถือนิดนึง) -->
-          <div class="position-absolute top-0 start-0 p-3 z-3 mt-2 ms-1">
+          <!-- ปุ่ม Back มุมซ้ายบน (ขยับลงมาอีกนิดด้วย mt-3) -->
+          <div class="position-absolute top-0 start-0 p-3 z-3 mt-3 ms-1">
             <button type="button" class="btn d-flex justify-content-center align-items-center rounded-circle" data-bs-dismiss="modal" style="width: 42px; height: 42px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
               <i class="fa-solid fa-chevron-left text-white" style="font-size: 1.2rem; margin-right: 2px;"></i>
             </button>
           </div>
           
-          <!-- Gradient สีเทาเข้ม ด้านล่าง (ใช้ #0d0e12 ให้เชื่อมกับพื้นหลังตารางเวลาด้านล่าง) -->
-          <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100" style="background: linear-gradient(0deg, #0d0e12 0%, rgba(13,14,18,0.9) 45%, transparent 100%); padding-bottom: 20px !important;">
+          <!-- 3. ดันเงาดำด้านล่างให้สูงขึ้น โดยเพิ่ม padding-top: 80px และปรับการไล่สีให้กินพื้นที่ขึ้นไปข้างบน -->
+          <div class="position-absolute bottom-0 start-0 p-3 z-2 w-100" style="background: linear-gradient(0deg, #0d0e12 0%, #0d0e12 15%, rgba(13,14,18,0.9) 65%, transparent 100%); padding-top: 80px !important; padding-bottom: 20px !important;">
             <div class="d-flex align-items-center gap-2 mb-1">
               <img id="wtFlagImg" src="" class="sch-flag" style="width: 28px; height: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.5);" alt="">
               <h4 id="wtCountryName" class="m-0 text-white fw-bold f1-font" style="letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">COUNTRY</h4>
