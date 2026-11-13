@@ -2459,7 +2459,7 @@ async function renderScheduleTab() {
 
     if (isNext) {
       html += `
-        <div class="card mb-1 border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="min-height: 220px; cursor: pointer;">
+        <div class="card border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="margin-bottom: 2px; min-height: 220px; cursor: pointer;">
           
           <!-- 1. รูปพื้นหลัง (ขยายความสูงเป็น 220px ให้ภาพใหญ่เต็มตา) -->
           <img src="${posterImgSrc}" class="position-absolute w-100 h-100" style="object-fit: cover; object-position: center; opacity: 1;" alt="${shortCountryName}" loading="lazy">
