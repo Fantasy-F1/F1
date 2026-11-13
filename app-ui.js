@@ -2481,17 +2481,36 @@ async function renderScheduleTab() {
       `;
     } else {
       html += `
-        <div class="schedule-card" ${clickAction} style="cursor: pointer;">
-          <div class="schedule-content">
-            <div>
-              <div class="sch-round">ROUND ${roundNum}</div>
-              <div class="sch-title-group">${flagImgHtml}<div class="sch-country">${shortCountryName}</div></div>
-              <div class="sch-full-name">${officialName}</div>
+        <div class="card mb-3 border-0 rounded-4 shadow-sm" ${clickAction} style="cursor: pointer; background-color: #1a1d24;">
+          <div class="card-body p-3">
+            
+            <!-- 1. ธง + ชื่อสนาม (ปรับให้เล็กลงและอยู่บรรทัดเดียวกัน) -->
+            <div class="d-flex align-items-center mb-1">
+              <span class="text-secondary fw-bold small me-2" style="font-size: 0.7rem; letter-spacing: 0.5px;">ROUND ${roundNum}</span>
             </div>
-            <div class="sch-bottom-row">
-              <div class="sch-date-pill"><i class="fa-solid fa-flag-checkered me-2"></i>${dateDisplay}</div>
-              ${trackImgSrc ? `<img src="${trackImgSrc}" class="sch-track-outline" alt="Layout" loading="lazy">` : ''}
+            <div class="d-flex align-items-center gap-2 mb-1">
+              ${flagImgHtml}
+              <h5 class="text-white fw-bold f1-font mb-0" style="font-size: 1.1rem; letter-spacing: 0.5px;">${shortCountryName}</h5>
             </div>
+
+            <!-- 2. ชื่อเต็มอย่างเป็นทางการ (สีเทา ขนาดเล็กสุด) -->
+            <div class="text-secondary mb-3" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2;">
+              ${officialName}
+            </div>
+
+            <!-- 3. วันที่ (ซ้าย) และ รูปผังสนาม (ขวา) ให้อยู่ระดับเดียวกัน -->
+            <div class="d-flex justify-content-between align-items-end mt-2">
+              
+              <!-- ป้ายวันที่ (พื้นหลังขาว ตัวหนังสือดำ แบบในรูปอ้างอิง) -->
+              <div class="bg-white text-dark fw-bold px-2 py-1 rounded" style="font-size: 0.8rem; letter-spacing: 1px;">
+                <i class="fa-solid fa-flag-checkered me-2 text-danger"></i>${dateDisplay}
+              </div>
+              
+              <!-- รูปผังสนาม (ถ้ามี) แสดงทางขวาล่าง -->
+              ${trackImgSrc ? `<img src="${trackImgSrc}" alt="Layout" loading="lazy" style="height: 40px; width: auto; filter: brightness(0) invert(1); opacity: 0.8;">` : ''}
+              
+            </div>
+            
           </div>
         </div>
       `;
