@@ -1,7 +1,11 @@
+// =========================================================
+// 1. DATA CONFIGURATION (ข้อมูลทีม นักแข่ง และกติกาคะแนน)
+// =========================================================
+
 // ==========================================
 // 🏎️ ภาพผังสนามสำหรับแสดงบน "การ์ดด้านหน้า"
 // ==========================================
-const TRACK_LAYOUT_IMAGES = {
+const CARD_TRACK_IMAGES = {
   // อิงลำดับ RaceID จาก Google Sheets ของคุณ
   "R01-MAIN": "https://lh3.googleusercontent.com/d/1nZ3aAaJlxv0_nINUynI6rZxqCryTo8KT", // AUSTRALIA
   "R02-MAIN": "https://lh3.googleusercontent.com/d/1mtfBQ5suSiQwSsVaWV4FH2uUcAt1Ztvr", // CHINA
@@ -25,8 +29,9 @@ const TRACK_LAYOUT_IMAGES = {
   "R20-MAIN": "https://lh3.googleusercontent.com/d/10wnKjXZyoM-oPriG9I4YSlRrCpXK-9cI", // Brazil
   "R21-MAIN": "https://lh3.googleusercontent.com/d/1qm7H-xpDXVs5k02DgVC8C3sXAaASPetB", // LAS VEGAS
   "R22-MAIN": "https://lh3.googleusercontent.com/d/13mXHCXp9N8ZMNrjmfMGv8qIm8OFmdrw5", // Qatar
-  "R23-MAIN": "https://lh3.googleusercontent.com/d/18olKr6DY9nGi0Xk56PL1ajym4wgmYvps", // ABU DHABI
+  "R23-MAIN": "https://lh3.googleusercontent.com/d/18olKr6DY9nGi0Xk56PL1ajym4wgmYvps"  // ABU DHABI
 };
+
 // ==========================================
 // 🏎️ ภาพผังสนามสำหรับแสดง "ด้านใน (Modal)"
 // ==========================================
@@ -55,8 +60,7 @@ const MODAL_TRACK_IMAGES = {
   "R22-MAIN": "https://lh3.googleusercontent.com/d/1mOybYL49b_UVECVvHz1flrb0TV-xRS-b", // Qatar
   "R23-MAIN": "https://lh3.googleusercontent.com/d/1m_gqNn6wlGf4El-QpWuUgxGo6CSBFrw9"  // ABU DHABI
 };
-// =========================================================
-// 1. DATA CONFIGURATION (ข้อมูลทีม นักแข่ง และกติกาคะแนน)
+
 // =========================================================
 
 const TEAM_LOGOS = { 
