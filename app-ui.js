@@ -2448,7 +2448,7 @@ async function renderScheduleTab() {
       else dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} ${monthNames[dtStart.getMonth()]} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
     }
 
-   const trackImgSrc = (race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '';
+   const trackImgSrc = TRACK_LAYOUT_IMAGES[race.id] || ((race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '');
     const bgImgSrc = (race.media && race.media.trackImg) ? getDriveDirectLink(race.media.trackImg) : 'https://lh3.googleusercontent.com/d/1UPM7PH4G6QD3W-9YFb_UTcLFsLWZ2fAj';
     
     // ดึงรูปโปสเตอร์จากคอลัมน์ I (ถ้าไม่ได้ใส่ไว้ ให้กลับไปใช้รูปปกสนาม bgImgSrc แทน)
@@ -2519,7 +2519,7 @@ async function renderScheduleTab() {
               </div>
               
               <!-- รูปผังสนาม (ถ้ามี) แสดงทางขวาล่าง -->
-              ${trackImgSrc ? `<img src="${trackImgSrc}" alt="Layout" loading="lazy" style="height: 40px; width: auto; filter: brightness(0) invert(1); opacity: 0.8;">` : ''}
+              ${trackImgSrc ? `<img src="${trackImgSrc}" alt="Layout" loading="lazy" style="height: 50px; width: auto; opacity: 0.95;">` : ''}
               
             </div>
             
