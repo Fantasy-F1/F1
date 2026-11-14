@@ -1,3 +1,29 @@
+const TRACK_LAYOUT_IMAGES = {
+  // อิงลำดับ RaceID จาก Google Sheets ของคุณ
+  "R01-MAIN": "https://lh3.googleusercontent.com/d/1nZ3aAaJlxv0_nINUynI6rZxqCryTo8KT", // AUSTRALIA
+  "R02-MAIN": "https://lh3.googleusercontent.com/d/1mtfBQ5suSiQwSsVaWV4FH2uUcAt1Ztvr", // CHINA
+  "R03-MAIN": "https://lh3.googleusercontent.com/d/197Ewf6dTKJwz_kiUcmQFjtgJKUNWA9vx", // JAPAN
+  "R04-MAIN": "https://lh3.googleusercontent.com/d/1mvfgthczHMRAXIMqZgc6X1R07lilG3BJ", // USA Miami
+  "R05-MAIN": "https://lh3.googleusercontent.com/d/1ZqVELyCA9toegeAKunyppcOW5aUGuR3B", // Canada
+  "R06-MAIN": "https://lh3.googleusercontent.com/d/1J1hqxL2AQ7NUF4H-RtFrMXv2SRPOx3h4", // Monaco
+  "R07-MAIN": "https://lh3.googleusercontent.com/d/1_1l18JbX5U-MRzxDbom3f_ufdq9sMcC2", // Barcelona
+  "R08-MAIN": "https://lh3.googleusercontent.com/d/1MyQeNA1b7Vrn0y_wUuxh7iaap1LSuFYg", // Austria
+  "R09-MAIN": "https://lh3.googleusercontent.com/d/1aM4AR0G9-ybriMEmSwcazlxmakOER1cs", // Great Britain
+  "R10-MAIN": "https://lh3.googleusercontent.com/d/1yH_kzK6L-8-ojCKNJ1-ybsDFONy7Ske9", // Belgium
+  "R11-MAIN": "https://lh3.googleusercontent.com/d/1sy5x66miShEbCe7VGc5wHOdOa1qgGTUw", // Hungary
+  "R12-MAIN": "https://lh3.googleusercontent.com/d/1xgsDUE-8Y-pPQEcdrx2LS4vBY8r5jnKQ", // Netherlands
+  "R13-MAIN": "https://lh3.googleusercontent.com/d/1ALz9_A-BZkymsxcE49K76XWd9qMNCmqf", // Italy
+  "R14-MAIN": "https://lh3.googleusercontent.com/d/1gVq8ZdgKnq--cr_U24cqKZmUPF8yPsHX", // Spain Madrid
+  "R15-MAIN": "https://lh3.googleusercontent.com/d/1U4qz-X0hKnnO4sGwXBAV8dy1DwOZBWJB", // Azerbaijan
+  "R16-MAIN": "https://lh3.googleusercontent.com/d/10csiBp0vslRLvBYh2e6c6R0du9iRL7Zd", // BAHRAIN
+  "R17-MAIN": "https://lh3.googleusercontent.com/d/18VHC56eub4RCqt9E7mw7C2pqY9qYn9uq", // Singapore
+  "R18-MAIN": "https://lh3.googleusercontent.com/d/1ECmebbbv02w5AfnGiS6765e05dkz-nDz", // UNITED STATES Austin
+  "R19-MAIN": "https://lh3.googleusercontent.com/d/1GrWrCt4W98A3QvU8086vq52DPtVt_Gr2", // MEXICO
+  "R20-MAIN": "https://lh3.googleusercontent.com/d/10wnKjXZyoM-oPriG9I4YSlRrCpXK-9cI", // Brazil
+  "R21-MAIN": "https://lh3.googleusercontent.com/d/1qm7H-xpDXVs5k02DgVC8C3sXAaASPetB", // LAS VEGAS
+  "R22-MAIN": "https://lh3.googleusercontent.com/d/13mXHCXp9N8ZMNrjmfMGv8qIm8OFmdrw5", // Qatar
+  "R23-MAIN": "https://lh3.googleusercontent.com/d/18olKr6DY9nGi0Xk56PL1ajym4wgmYvps", // ABU DHABI
+};
 // =========================================================
 // 1. DATA CONFIGURATION (ข้อมูลทีม นักแข่ง และกติกาคะแนน)
 // =========================================================
