@@ -793,8 +793,13 @@ function onCenterRaceChange() {
   const layoutWrapper = document.getElementById('rcTrackLayoutWrapper');
   const layoutImg = document.getElementById('rcTrackLayoutImg');
   if (layoutWrapper && layoutImg) {
-    if (m.trackLayoutImg && m.trackLayoutImg.trim() !== "") {
-      layoutImg.src = getDriveDirectLink(m.trackLayoutImg);
+    // ดึงรูปลิงก์จากตัวแปร MODAL_TRACK_IMAGES แทน ถ้าไม่มีค่อยไปหาใน Sheets
+    const trackLayoutSrc = (typeof MODAL_TRACK_IMAGES !== 'undefined' && MODAL_TRACK_IMAGES[raceId]) 
+                           ? MODAL_TRACK_IMAGES[raceId] 
+                           : ((m.trackLayoutImg && m.trackLayoutImg.trim() !== "") ? getDriveDirectLink(m.trackLayoutImg) : '');
+                           
+    if (trackLayoutSrc) {
+      layoutImg.src = trackLayoutSrc;
       layoutWrapper.style.display = 'block';
     } else {
       layoutImg.src = '';
