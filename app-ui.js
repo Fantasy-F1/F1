@@ -2448,7 +2448,14 @@ async function renderScheduleTab() {
       else dateDisplay = `${String(dtStart.getDate()).padStart(2, '0')} ${monthNames[dtStart.getMonth()]} - ${String(dtEnd.getDate()).padStart(2, '0')} ${monthNames[dtEnd.getMonth()]}`;
     }
 
-   const trackImgSrc = TRACK_LAYOUT_IMAGES[race.id] || ((race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '');
+  // ดึงรูปสำหรับโชว์บน "การ์ดด้านหน้า"
+    const cardTrackImgSrc = CARD_TRACK_IMAGES[race.id] || ''; 
+    
+    // ดึงรูปสำหรับแสดง "ด้านใน (Modal)"
+    const modalTrackImgSrc = MODAL_TRACK_IMAGES[race.id] || ((race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '');
+
+    // ส่ง modalTrackImgSrc เข้าไปในฟังก์ชันเปิด Modal
+    const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${posterImgSrc}', '${modalTrackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
     const bgImgSrc = (race.media && race.media.trackImg) ? getDriveDirectLink(race.media.trackImg) : 'https://lh3.googleusercontent.com/d/1UPM7PH4G6QD3W-9YFb_UTcLFsLWZ2fAj';
     
     // ดึงรูปโปสเตอร์จากคอลัมน์ I (ถ้าไม่ได้ใส่ไว้ ให้กลับไปใช้รูปปกสนาม bgImgSrc แทน)
@@ -2519,7 +2526,7 @@ async function renderScheduleTab() {
               </div>
               
               <!-- รูปผังสนาม (ถ้ามี) แสดงทางขวาล่าง -->
-              ${trackImgSrc ? `<img src="${trackImgSrc}" alt="Layout" loading="lazy" style="height: 50px; width: auto; opacity: 0.95;">` : ''}
+              ${cardTrackImgSrc ? `<img src="${cardTrackImgSrc}" alt="Layout" loading="lazy" style="height: 50px; width: auto; opacity: 0.95;">` : ''}
               
             </div>
             
