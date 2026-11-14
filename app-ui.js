@@ -2456,7 +2456,6 @@ async function renderScheduleTab() {
 
     // ส่ง modalTrackImgSrc เข้าไปในฟังก์ชันเปิด Modal
     const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${posterImgSrc}', '${modalTrackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
-    const bgImgSrc = (race.media && race.media.trackImg) ? getDriveDirectLink(race.media.trackImg) : 'https://lh3.googleusercontent.com/d/1UPM7PH4G6QD3W-9YFb_UTcLFsLWZ2fAj';
     
     // ดึงรูปโปสเตอร์จากคอลัมน์ I (ถ้าไม่ได้ใส่ไว้ ให้กลับไปใช้รูปปกสนาม bgImgSrc แทน)
     const posterImgSrc = (race.media && race.media.schedulePosterImg) ? getDriveDirectLink(race.media.schedulePosterImg) : bgImgSrc;
