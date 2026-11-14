@@ -2454,15 +2454,12 @@ async function renderScheduleTab() {
     // ดึงรูปสำหรับแสดง "ด้านใน (Modal)"
     const modalTrackImgSrc = MODAL_TRACK_IMAGES[race.id] || ((race.media && race.media.trackLayoutImg) ? getDriveDirectLink(race.media.trackLayoutImg) : '');
 
-    // ส่ง modalTrackImgSrc เข้าไปในฟังก์ชันเปิด Modal
+    // 1. ดึงรูปโปสเตอร์มาเตรียมไว้ก่อน
+    const posterImgSrc = (race.media && race.media.schedulePosterImg) ? getDriveDirectLink(race.media.schedulePosterImg) : bgImgSrc;
+
+    // 2. ประกาศ clickAction แค่รอบเดียว (ใช้ modalTrackImgSrc สำหรับป๊อปอัปด้านใน)
     const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${posterImgSrc}', '${modalTrackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
     
-    // ดึงรูปโปสเตอร์จากคอลัมน์ I (ถ้าไม่ได้ใส่ไว้ ให้กลับไปใช้รูปปกสนาม bgImgSrc แทน)
-    const posterImgSrc = (race.media && race.media.schedulePosterImg) ? getDriveDirectLink(race.media.schedulePosterImg) : bgImgSrc;
-    
-    // ผูก Event Onclick ส่ง posterImgSrc ไปแสดงใน Bottom Sheet
-    const clickAction = `onclick="openWeekendTimetable('${race.id}', '${shortCountryName.replace(/'/g, "\\'")}', '${officialName.replace(/'/g, "\\'")}', '${flagCode}', '${posterImgSrc}', '${trackImgSrc}', '${apiMatch ? apiMatch.meeting_key : ''}')"`;
-
     if (isNext) {
       html += `
         <div class="card border-0 rounded-4 overflow-hidden position-relative shadow-lg" ${clickAction} style="margin-bottom: 1px; min-height: 220px; cursor: pointer;">
