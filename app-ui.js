@@ -2385,7 +2385,7 @@ const COUNTRY_FLAGS = {
   "azerbaijan": "az", "singapore": "sg", 
   "united states": "us", "austin": "us", "las vegas": "us",
   "mexico": "mx", "mexican": "mx", "mexico city": "mx",
-  "brazil": "br", "brazilian": "br", "sao paulo": "br",
+  "brazil": "br", "brazilian": "br", "sao paulo": "br", "são paulo": "br",
   "qatar": "qa", "abu dhabi": "ae"
 };
 
@@ -2419,10 +2419,17 @@ async function renderScheduleTab() {
     const isNext = race.id === nextRaceId;
     const roundNum = String(index + 1);
     
-    const apiMatch = openF1Meetings.find(m => 
-      race.name.toLowerCase().includes(m.meeting_name.toLowerCase()) || 
-      m.meeting_name.toLowerCase().includes(race.name.toLowerCase().replace(' grand prix', ''))
-    ) || openF1Meetings[index];
+    // แก้ไขการจับคู่ชื่อ API ให้ฉลาดขึ้น และยกเลิกการสุ่มดึง Index 
+    const gSheetName = race.name.toLowerCase();
+    const apiMatch = openF1Meetings.find(m => {
+      const apiName = m.meeting_name.toLowerCase();
+      return gSheetName.includes(apiName) || 
+             apiName.includes(gSheetName.replace(' grand prix', '')) ||
+             (gSheetName.includes('brazil') && apiName.includes('são paulo')) ||
+             (gSheetName.includes('brazil') && apiName.includes('sao paulo')) ||
+             (gSheetName.includes('emilia') && apiName.includes('imola')) ||
+             (gSheetName.includes('netherlands') && apiName.includes('dutch'));
+    });
 
     const officialName = apiMatch && apiMatch.meeting_official_name ? apiMatch.meeting_official_name : (race.type === 'Sprint' ? 'FORMULA 1 SPRINT WEEKEND 2026' : 'FORMULA 1 GRAND PRIX 2026');
     const shortCountryName = apiMatch && apiMatch.meeting_name ? apiMatch.meeting_name : race.name;
@@ -2572,12 +2579,25 @@ async function openWeekendTimetable(raceId, countryName, officialName, flagCode,
         if (s.session_name.toLowerCase().includes('race')) typeClass = 'tl-race';
         else if (s.session_name.toLowerCase().includes('qualifying')) typeClass = 'tl-quali';
 
+        // 🎯 ตรวจสอบว่าเริ่มแข่งหรือยัง
+        const now = new Date();
+        const isStarted = dt <= now;
+        
+        // ถ้าเริ่มแล้วให้คลิกได้และมีลูกศร ถ้ายังไม่เริ่มไม่ต้องลดสี (opacity) และไม่ต้องแสดงไอคอนใดๆ
+        const clickAttr = isStarted ? `onclick="toggleSessionResults('${s.session_key}', this)" style="cursor: pointer;"` : ``;
+        const iconHtml = isStarted ? `<i class="fa-solid fa-chevron-down ms-2 text-info" style="font-size: 0.8rem;"></i>` : ``;
+
         timelineHtml += `
-          <div class="tl-item ${typeClass}">
+          <div class="tl-item ${typeClass}" ${clickAttr}>
             <div class="tl-day">${dayStr}</div>
-            <div class="tl-content">
-              <div class="tl-session">${s.session_name.toUpperCase()}</div>
-              <div class="tl-time"><i class="fa-regular fa-clock me-1"></i>${timeStr}</div>
+            <div class="tl-content" style="width: 100%; display: flex; flex-direction: column; align-items: stretch;">
+              <div class="d-flex justify-content-between align-items-center w-100">
+                <div class="tl-session">${s.session_name.toUpperCase()} ${iconHtml}</div>
+                <div class="tl-time"><i class="fa-regular fa-clock me-1"></i>${timeStr}</div>
+              </div>
+              
+              <!-- 🎯 กล่องสำหรับกางผลซ้อม/ผลแข่ง (ซ่อนไว้เป็นค่าเริ่มต้น) -->
+              <div class="session-results-container mt-3" style="display: none; width: 100%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 12px; margin-left: 0; box-sizing: border-box;"></div>
             </div>
           </div>
         `;
@@ -2615,4 +2635,37 @@ function jumpToArchiveFromSchedule() {
     if (archiveHeader) archiveHeader.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   }, 300);
+}
+// ==========================================
+// 📊 ฟังก์ชันกางตารางเวลา แล้วเรียกใช้ UI จากหน้า Results
+// ==========================================
+async function toggleSessionResults(sessionKey, element) {
+  triggerHaptic();
+  
+  // ป้องกันการกางกล่องถ้าเซสชันยังไม่เริ่ม (ปุ่มไม่ active)
+  if (element.style.opacity === '0.6') return;
+  
+  const resultContainer = element.querySelector('.session-results-container');
+  const icon = element.querySelector('.tl-session i.fa-chevron-down, .tl-session i.fa-chevron-up');
+  
+  // 1. หุบกล่องกลับ
+  if (resultContainer.style.display === 'block') {
+    resultContainer.style.display = 'none';
+    if (icon) { icon.classList.remove('fa-chevron-up'); icon.classList.add('fa-chevron-down'); }
+    return;
+  }
+
+  // 2. กางกล่องออก
+  resultContainer.style.display = 'block';
+  if (icon) { icon.classList.remove('fa-chevron-down'); icon.classList.add('fa-chevron-up'); }
+  
+  // ถ้าเคยดึงข้อมูลแล้ว ไม่ต้องดึงซ้ำ (ลดภาระ API)
+  if (resultContainer.innerHTML.trim() !== '') return;
+
+  // 3. เรียกใช้ฟังก์ชันดึงผลและ UI จากหน้า Results (ส่ง null แทนปุ่ม, และส่งกล่องเป้าหมายไป)
+  if (typeof loadResultsSessionData === 'function') {
+    loadResultsSessionData(sessionKey, null, resultContainer);
+  } else {
+    resultContainer.innerHTML = '<div class="text-center text-danger small py-3">ระบบเชื่อมต่อผลการแข่งขันไม่พร้อมใช้งาน</div>';
+  }
 }
