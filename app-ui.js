@@ -18,9 +18,12 @@ let globalLeaderboard = [];
 let globalPlayers = []; 
 let globalRaces = []; 
 let lastPendingList = []; 
-let currentActiveMedia = null;
-let isRefreshing = false;
 let currentArchiveMode = 'quali2025';
+let isRefreshing = false;
+let currentCenterMedia = null;
+let currentArchiveMedia = null;
+let currentHeroDriver = null;
+let isHeroInPredictMode = false;
 let playerChartInstance = null;
 
 function showToast(msg, type='success') { 
@@ -73,9 +76,26 @@ window.onload = function() {
     });
   }
 
-  const heroModalEl = document.getElementById('driverHeroModal');
+    const heroModalEl = document.getElementById('driverHeroModal');
   if (heroModalEl) {
+    window.driverHeroModalInstance = new bootstrap.Modal(heroModalEl);
+
+    // ดัน z-index ให้ Hero Modal ซ้อนทับตารางเลือกนักแข่งทันทีแบบ Zero-Lag ไม่ต้องรอพับเก็บ
+    heroModalEl.addEventListener('show.bs.modal', function () {
+      heroModalEl.style.setProperty('z-index', '1075', 'important');
+      setTimeout(function () {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 1) {
+          backdrops[backdrops.length - 1].style.setProperty('z-index', '1070', 'important');
+        }
+      }, 10);
+    });
+
     heroModalEl.addEventListener('hidden.bs.modal', function () {
+      if (driverModalEl && driverModalEl.classList.contains('show')) {
+        document.body.classList.add('modal-open');
+        refreshDriverGridBadges();
+      }
       setTimeout(updateRadioButtonVisibility, 200);
     });
   }
@@ -83,6 +103,7 @@ window.onload = function() {
   const optHtml = '<option value="" disabled selected>-- เลือกนักแข่ง --</option>' + DRIVERS.map(function(d) { return '<option value="' + d + '">' + d + '</option>'; }).join('');
   document.querySelectorAll('.driver-opt').forEach(function(el) { el.innerHTML = optHtml; });
 
+  initHeroHybridShowcaseUI();
   buildDriverGrid();
   loadData();
   loadOpenF1Meetings();
@@ -129,28 +150,7 @@ function buildDriverGrid() {
   container.innerHTML = html;
 }
 
-function openDriverSelector(slotId) {
-  triggerHaptic();
-  currentSelectingSlot = slotId;
-
-  // 🎯 ซ่อนปุ่ม Radio ทันทีเมื่อเปิดหน้าต่างเลือกนักแข่ง
-  const radioBtn = document.getElementById('btnTeamRadio');
-  if (radioBtn) {
-    radioBtn.style.setProperty('display', 'none', 'important');
-  }
-
-  const titles = { 
-    'pos1': 'P1 (อันดับที่ 1)', 
-    'pos2': 'P2 (อันดับที่ 2)', 
-    'pos3': 'P3 (อันดับที่ 3)', 
-    'pos4': 'P4 (อันดับที่ 4)', 
-    'posFL': 'Fastest Lap' 
-  };
-  const titleEl = document.getElementById('driverSelectorTitle');
-  if (titleEl) {
-    titleEl.innerHTML = '<i class="fa-solid fa-helmet-safety text-danger me-2"></i>เลือกนักแข่งสำหรับ ' + (titles[slotId] || '');
-  }
-
+function refreshDriverGridBadges() {
   document.querySelectorAll('.driver-pick-btn').forEach(function(btn) {
     btn.classList.remove('already-selected');
     const badgeContainer = btn.querySelector('.driver-pick-badges');
@@ -164,7 +164,6 @@ function openDriverSelector(slotId) {
     'p4': document.getElementById('pos4') ? document.getElementById('pos4').value : '',
     'pfl': document.getElementById('posFL') ? document.getElementById('posFL').value : ''
   };
-  
   const posLabels = { 'p1': 'P1', 'p2': 'P2', 'p3': 'P3', 'p4': 'P4', 'pfl': 'FL' };
 
   Object.keys(currentPicks).forEach(function(pos) {
@@ -180,38 +179,83 @@ function openDriverSelector(slotId) {
       }
     }
   });
+}
 
-  if (driverSelectorModalInstance) {
+function updateSelectorHeaderTitle(slotId) {
+  const titles = { 
+    'pos1': 'P1 (อันดับที่ 1)', 
+    'pos2': 'P2 (อันดับที่ 2)', 
+    'pos3': 'P3 (อันดับที่ 3)', 
+    'pos4': 'P4 (อันดับที่ 4)', 
+    'posFL': 'Fastest Lap' 
+  };
+  const titleEl = document.getElementById('driverSelectorTitle');
+  if (titleEl) {
+    titleEl.innerHTML = '<i class="fa-solid fa-helmet-safety text-danger me-2"></i>เลือกนักแข่งสำหรับ ' + (titles[slotId] || '');
+  }
+}
+
+function openDriverSelector(slotId) {
+  triggerHaptic();
+  currentSelectingSlot = slotId;
+
+  const radioBtn = document.getElementById('btnTeamRadio');
+  if (radioBtn) {
+    radioBtn.style.setProperty('display', 'none', 'important');
+  }
+
+  updateSelectorHeaderTitle(slotId);
+  refreshDriverGridBadges();
+
+  const driverModalEl = document.getElementById('driverSelectorModal');
+  if (driverSelectorModalInstance && driverModalEl && !driverModalEl.classList.contains('show')) {
     driverSelectorModalInstance.show();
   }
 }
 
-function confirmSelectDriver(driverName) {
+function confirmSelectDriver(driverName, skipAssignCurrent) {
   triggerHaptic();
   if (!currentSelectingSlot) return;
 
-  const selectEl = document.getElementById(currentSelectingSlot);
-  if (selectEl) selectEl.value = driverName;
-  updateCardUI(currentSelectingSlot, driverName);
-
-  const slotSequence = ['pos1', 'pos2', 'pos3', 'pos4', 'posFL'];
-  const currentIndex = slotSequence.indexOf(currentSelectingSlot);
+  if (!skipAssignCurrent) {
+    const selectEl = document.getElementById(currentSelectingSlot);
+    if (selectEl) selectEl.value = driverName;
+    updateCardUI(currentSelectingSlot, driverName);
+  }
 
   const flWrapper = document.getElementById('flWrapper');
   const isSprint = flWrapper && flWrapper.style.display === 'none';
+  const slotSequence = isSprint ? ['pos1', 'pos2', 'pos3', 'pos4'] : ['pos1', 'pos2', 'pos3', 'pos4', 'posFL'];
+  const currentIndex = slotSequence.indexOf(currentSelectingSlot);
 
+  // วิ่งหาช่องถัดไปที่ยังว่างอยู่ (ถ้าบางช่องถูกกดเหมาไปแล้วจะข้ามให้อัตโนมัติ)
   let nextSlot = null;
-  if (currentIndex !== -1 && currentIndex < slotSequence.length - 1) {
-    nextSlot = slotSequence[currentIndex + 1];
-    if (isSprint && nextSlot === 'posFL') {
-      nextSlot = null; 
+  for (let i = currentIndex + 1; i < slotSequence.length; i++) {
+    const el = document.getElementById(slotSequence[i]);
+    if (el && !el.value) {
+      nextSlot = slotSequence[i];
+      break;
+    }
+  }
+  if (!nextSlot) {
+    for (let i = 0; i < currentIndex; i++) {
+      const el = document.getElementById(slotSequence[i]);
+      if (el && !el.value) {
+        nextSlot = slotSequence[i];
+        break;
+      }
     }
   }
 
+  refreshDriverGridBadges();
+
   if (nextSlot) {
-    setTimeout(function() {
-      openDriverSelector(nextSlot);
-    }, 150);
+    currentSelectingSlot = nextSlot;
+    updateSelectorHeaderTitle(nextSlot);
+    const driverModalEl = document.getElementById('driverSelectorModal');
+    if (driverSelectorModalInstance && driverModalEl && !driverModalEl.classList.contains('show')) {
+      driverSelectorModalInstance.show();
+    }
   } else {
     if (driverSelectorModalInstance) {
       driverSelectorModalInstance.hide();
@@ -277,21 +321,21 @@ function getDriveDirectLink(url) {
 
 function openMediaPreview(type) { 
   triggerHaptic(); 
-  if (!currentActiveMedia || !currentActiveMedia[type]) { 
+  if (!currentCenterMedia || !currentCenterMedia[type]) { 
     showToast('ไม่มีรูป', 'error'); 
     return; 
   } 
-  document.getElementById('previewImageSrc').src = getDriveDirectLink(currentActiveMedia[type]); 
+  document.getElementById('previewImageSrc').src = getDriveDirectLink(currentCenterMedia[type]); 
   imagePreviewModalInstance.show(); 
 }
 
 function openMediaPreview2025(type) { 
   triggerHaptic(); 
-  if (!currentActiveMedia || !currentActiveMedia[type]) { 
+  if (!currentArchiveMedia || !currentArchiveMedia[type]) { 
     showToast('ไม่มีรูปปีก่อน', 'error'); 
     return; 
   } 
-  document.getElementById('previewImageSrc').src = getDriveDirectLink(currentActiveMedia[type]); 
+  document.getElementById('previewImageSrc').src = getDriveDirectLink(currentArchiveMedia[type]); 
   imagePreviewModalInstance.show(); 
 }
 
@@ -754,8 +798,8 @@ function onCenterRaceChange() {
   const container = document.getElementById('rcContent');
   if (!currentRace) { container.style.display = 'none'; return; }
   container.style.display = 'block'; 
-  currentActiveMedia = currentRace.media || null; 
-  const m = currentActiveMedia || {};
+    currentCenterMedia = currentRace.media || null; 
+  const m = currentCenterMedia || {};
 
   const practiceWrapper = document.getElementById('practiceSectionWrapper');
   const thumbPrac = document.getElementById('thumbPractice');
@@ -818,8 +862,8 @@ function on2025RaceChange() {
   const container = document.getElementById('content2025');
   if (!currentRace) { container.style.display = 'none'; return; }
   container.style.display = 'block'; 
-  currentActiveMedia = currentRace.media || null; 
-  const m = currentActiveMedia || {};
+  currentArchiveMedia = currentRace.media || null;
+  const m = currentArchiveMedia || {};
 
   const dotQuali = document.getElementById('dotQuali2025');
   const dotRace = document.getElementById('dotRace2025');
@@ -859,7 +903,7 @@ function switchArchiveMode(mode, skipHaptic) {
     if (headerTitle) headerTitle.innerHTML = '<i class="fa-solid fa-flag-checkered text-warning me-2"></i>OFFICIAL RACE CLASSIFICATION';
   }
 
-  const m = currentActiveMedia || {};
+    const m = currentArchiveMedia || {};
   const imgUrl = m[mode];
 
   if (imgUrl && imgUrl.trim() !== "") {
@@ -882,7 +926,7 @@ function switchArchiveMode(mode, skipHaptic) {
 }
 
 function openActiveArchivePreview() {
-  const m = currentActiveMedia || {};
+  const m = currentArchiveMedia || {};
   if (!m[currentArchiveMode] || m[currentArchiveMode].trim() === "") return;
   openMediaPreview2025(currentArchiveMode);
 }
@@ -1038,28 +1082,28 @@ function openBreakdownModal(raceId) {
         if (info.status === 'EXACT') { pillClass = 'score-pill-exact'; borderClass = 'border-success'; }
         else if (info.status === 'PARTIAL') { pillClass = 'score-pill-partial'; borderClass = 'border-warning'; }
 
-        return `
-          <div class="p-2 mb-2 rounded bg-black border ${borderClass}">
-            <div class="d-flex justify-content-between align-items-center small text-secondary mb-1">
-              <span><strong>${posTitle}</strong> (ผลจริง: <span class="text-warning fw-bold">${actVal || '-'}</span>)</span>
-              ${pred ? `<span class="${pillClass}">${info.label}</span>` : ''}
-            </div>
-            <div class="small text-white">คุณทาย: <strong>${predVal || '<span class="text-muted">ไม่ได้ส่ง</span>'}</strong></div>
-          </div>`;
+                const pillBadgeHtml = pred ? ('<span class="' + pillClass + '">' + info.label + '</span>') : '';
+        return '<div class="p-2 mb-2 rounded bg-black border ' + borderClass + '">' +
+            '<div class="d-flex justify-content-between align-items-center small text-secondary mb-1">' +
+              '<span><strong>' + posTitle + '</strong> (ผลจริง: <span class="text-warning fw-bold">' + (actVal || '-') + '</span>)</span>' +
+              pillBadgeHtml +
+            '</div>' +
+            '<div class="small text-white">คุณทาย: <strong>' + (predVal || '<span class="text-muted">ไม่ได้ส่ง</span>') + '</strong></div>' +
+          '</div>';
       }
 
-      let html = `
-        <div class="mb-3 text-center">
-          <h6 class="fw-bold text-white mb-2 f1-font">${act.name}</h6>
-          ${pred 
-            ? `<span class="badge bg-warning text-dark fs-6 px-3 py-2">คะแนนรวมที่ได้: ${displayScore} PTS</span>` 
-            : `<span class="badge bg-secondary">คุณไม่ได้ส่งคำทายในสนามนี้</span>`}
-        </div>
-        ${renderMatchRow('p1', '🥇 P1', act.p1, pred ? pred.p1 : '')}
-        ${renderMatchRow('p2', '🥈 P2', act.p2, pred ? pred.p2 : '')}
-        ${renderMatchRow('p3', '🥉 P3', act.p3, pred ? pred.p3 : '')}
-        ${renderMatchRow('p4', '🏁 P4', act.p4, pred ? pred.p4 : '')}
-      `;
+      const headerScoreHtml = pred
+        ? ('<span class="badge bg-warning text-dark fs-6 px-3 py-2">คะแนนรวมที่ได้: ' + displayScore + ' PTS</span>')
+        : '<span class="badge bg-secondary">คุณไม่ได้ส่งคำทายในสนามนี้</span>';
+
+      let html = '<div class="mb-3 text-center">' +
+          '<h6 class="fw-bold text-white mb-2 f1-font">' + act.name + '</h6>' +
+          headerScoreHtml +
+        '</div>' +
+        renderMatchRow('p1', '🥇 P1', act.p1, pred ? pred.p1 : '') +
+        renderMatchRow('p2', '🥈 P2', act.p2, pred ? pred.p2 : '') +
+        renderMatchRow('p3', '🥉 P3', act.p3, pred ? pred.p3 : '') +
+        renderMatchRow('p4', '🏁 P4', act.p4, pred ? pred.p4 : '');
 
       if (!isSprint) {
         html += renderMatchRow('fl', '⚡ Fastest Lap', act.fl, pred ? pred.fl : '');
@@ -1086,13 +1130,15 @@ function showPlayerStats(playerName) {
     const teamColor = TEAM_COLORS[pTeam] || "#555555";
     const logoUrl = TEAM_LOGOS[pTeam] ? getDriveDirectLink(TEAM_LOGOS[pTeam]) : "";
 
+        const avatarHtml = logoUrl ? ('<img src="' + logoUrl + '" alt="Team">') : '<i class="fa-solid fa-user-astronaut text-secondary"></i>';
+
     let html = `
       <div class="stats-super-license" style="--team-color: ${teamColor}; text-align: left;">
         
         <!-- 1. Super License Header -->
         <div class="sl-header mb-3">
           <div class="sl-avatar">
-            ${logoUrl ? `<img src="${logoUrl}" alt="Team">` : `<i class="fa-solid fa-user-astronaut text-secondary"></i>`}
+            ${avatarHtml}
           </div>
           <div class="sl-info">
             <div class="sl-name">${res.playerName}</div>
@@ -2004,16 +2050,111 @@ async function loadDriverStatsAPI() {
   }
 }
 
+// 1. ระบบปัดนิ้วซ้าย-ขวา (Touch Swipe) แบบไร้ปุ่มรกตา สำหรับเลื่อนเทียบนักแข่ง
+function initHeroHybridShowcaseUI() {
+  const heroModalEl = document.getElementById('driverHeroModal');
+  if (!heroModalEl) return;
+
+  if (!document.getElementById('hybridShowcaseInlineStyles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'hybridShowcaseInlineStyles';
+    styleEl.textContent =
+      '.hero-driver-switch-anim { animation: heroFadeSlide 0.22s cubic-bezier(0.22, 1, 0.36, 1); }\n' +
+      '@keyframes heroFadeSlide { from { opacity: 0.35; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }';
+    document.head.appendChild(styleEl);
+  }
+
+  const modalBody = heroModalEl.querySelector('.modal-body');
+  if (modalBody && !modalBody.dataset.swipeBound) {
+    modalBody.dataset.swipeBound = '1';
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    modalBody.addEventListener('touchstart', function (e) {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }
+    }, { passive: true });
+
+    modalBody.addEventListener('touchend', function (e) {
+      if (!e.changedTouches || e.changedTouches.length === 0) return;
+      const diffX = e.changedTouches[0].screenX - touchStartX;
+      const diffY = e.changedTouches[0].screenY - touchStartY;
+      if (Math.abs(diffX) > 55 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+        if (diffX < 0) navigateHeroDriver(1);
+        else navigateHeroDriver(-1);
+      }
+    }, { passive: true });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (!heroModalEl.classList.contains('show')) return;
+    if (e.key === 'ArrowLeft') navigateHeroDriver(-1);
+    else if (e.key === 'ArrowRight') navigateHeroDriver(1);
+  });
+}
+
+function navigateHeroDriver(direction) {
+  if (!Array.isArray(DRIVERS) || DRIVERS.length === 0) return;
+  if (!currentHeroDriver) currentHeroDriver = DRIVERS[0];
+  triggerHaptic();
+
+  let orderedList = DRIVERS;
+  if (!isHeroInPredictMode) {
+    const domOrder = [];
+    document.querySelectorAll('#driverStandingsList .f1-standings-row').forEach(function (row) {
+      const onclickAttr = row.getAttribute('onclick') || '';
+      const match = onclickAttr.match(/openDriverHero\('([^']+)'/);
+      if (match && match[1]) domOrder.push(match[1]);
+    });
+    if (domOrder.length > 0) orderedList = domOrder;
+  }
+
+  let currentIdx = orderedList.indexOf(currentHeroDriver);
+  if (currentIdx === -1) currentIdx = 0;
+  const nextIdx = (currentIdx + direction + orderedList.length) % orderedList.length;
+  const nextDriverName = orderedList[nextIdx];
+
+  const imgEl = document.getElementById('heroDriverImg');
+  if (imgEl) {
+    imgEl.classList.remove('hero-driver-switch-anim');
+    void imgEl.offsetWidth;
+    imgEl.classList.add('hero-driver-switch-anim');
+  }
+
+  if (isHeroInPredictMode) {
+    previewDriverBeforeSelect(nextDriverName, true);
+  } else {
+    openDriverHero(nextDriverName, null, true);
+  }
+}
+
+// 2. กราฟเรดาร์แบบเดิมเป๊ะ 100% พร้อมขยับเส้นกราฟนุ่มนวลเวลาปัดเทียบนักแข่ง
 function renderDriverRadar(fullName, teamColor) {
   const canvasEl = document.getElementById('driverRadarChart');
   if (!canvasEl) return;
-  const ctx = canvasEl.getContext('2d');
-  
-  if (heroRadarChartInstance) heroRadarChartInstance.destroy();
 
   const statsData = DRIVER_STATS[fullName] || DRIVER_STATS["default"];
   const colorCode = teamColor || "#0dcaf0";
 
+  if (heroRadarChartInstance && heroRadarChartInstance.canvas === canvasEl) {
+    const ds = heroRadarChartInstance.data.datasets[0];
+    ds.label = fullName;
+    ds.data = statsData;
+    ds.backgroundColor = colorCode + '40';
+    ds.borderColor = colorCode;
+    ds.pointBorderColor = colorCode;
+    ds.pointHoverBackgroundColor = colorCode;
+    heroRadarChartInstance.options.plugins.tooltip.bodyColor = colorCode;
+    heroRadarChartInstance.options.plugins.tooltip.borderColor = colorCode;
+    heroRadarChartInstance.update();
+    return;
+  }
+
+  if (heroRadarChartInstance) heroRadarChartInstance.destroy();
+
+  const ctx = canvasEl.getContext('2d');
   heroRadarChartInstance = new Chart(ctx, {
     type: 'radar',
     data: {
@@ -2021,7 +2162,7 @@ function renderDriverRadar(fullName, teamColor) {
       datasets: [{
         label: fullName,
         data: statsData,
-        backgroundColor: colorCode + '40', 
+        backgroundColor: colorCode + '40',
         borderColor: colorCode,
         pointBackgroundColor: '#000',
         pointBorderColor: colorCode,
@@ -2039,7 +2180,7 @@ function renderDriverRadar(fullName, teamColor) {
           angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
           grid: { color: 'rgba(255, 255, 255, 0.1)' },
           pointLabels: { color: '#94a3b8', font: { family: 'Rajdhani', size: 11, weight: 'bold' } },
-          ticks: { display: false, min: 50, max: 100 } 
+          ticks: { display: false, min: 50, max: 100 }
         }
       },
       plugins: {
@@ -2062,27 +2203,25 @@ function renderDriverRadar(fullName, teamColor) {
   });
 }
 
-function previewDriverBeforeSelect(fullName) {
-  triggerHaptic();
-  
-  // 🎯 ซ่อนปุ่ม Radio ไว้ตลอดระหว่างดูกราฟนักแข่ง
-  const radioBtn = document.getElementById('btnTeamRadio');
-  if (radioBtn) {
-    radioBtn.style.setProperty('display', 'none', 'important');
-  }
+// 3. Clean Editorial Hero (Layout แต้มและปุ่มเหลืองแบบเดิมเป๊ะ + สลับหน้าไว Zero-Lag + ทายซ้ำได้ทุกช่อง)
+function previewDriverBeforeSelect(fullName, isSwiping) {
+  if (!isSwiping) triggerHaptic();
 
-  const gridModalEl = document.getElementById('driverSelectorModal');
+  const radioBtn = document.getElementById('btnTeamRadio');
+  if (radioBtn) radioBtn.style.setProperty('display', 'none', 'important');
+
   const info = DRIVER_INFO[fullName];
   if (!info) return;
 
+  currentHeroDriver = fullName;
+  isHeroInPredictMode = true;
+
   let currentPts = "0";
   let currentPos = "-";
-  
   const standingRows = document.querySelectorAll('#driverStandingsList .f1-standings-row');
-  standingRows.forEach(row => {
+  standingRows.forEach(function(row) {
     const onclickAttr = row.getAttribute('onclick') || '';
     const lastName = fullName.split(' ').slice(1).join(' ');
-    
     if (onclickAttr.includes(fullName) || (lastName && row.innerText.includes(lastName))) {
       const ptsEl = row.querySelector('.col-pts');
       const posEl = row.querySelector('.col-pos');
@@ -2096,24 +2235,23 @@ function previewDriverBeforeSelect(fullName) {
   document.getElementById('heroDriverLastName').innerText = parts.slice(1).join(' ');
   document.getElementById('heroTeamName').innerText = info.team;
   document.getElementById('heroTeamLogo').src = getDriveDirectLink(TEAM_LOGOS[info.team] || '');
-  document.getElementById('heroDriverImg').src = getDriveDirectLink(info.heroImg || info.img); 
-  document.getElementById('heroBgColor').style.background = `linear-gradient(to bottom, #0a0e1c 0%, ${info.color}40 15%, #0a0e1c 65%)`;
+  document.getElementById('heroDriverImg').src = getDriveDirectLink(info.heroImg || info.img);
+  document.getElementById('heroBgColor').style.background = 'linear-gradient(to bottom, #0a0e1c 0%, ' + info.color + '40 15%, #0a0e1c 65%)';
 
   const heroPtsEl = document.getElementById('heroPoints');
-  if (heroPtsEl) heroPtsEl.innerText = "0"; 
   const heroPosEl = document.getElementById('heroPos');
   if (heroPosEl) heroPosEl.innerText = 'P' + currentPos;
 
   const standardStatsEl = document.getElementById('heroStandardStats');
   const predictSectionEl = document.getElementById('heroPredictSection');
-  
+
   if (standardStatsEl) {
     standardStatsEl.style.display = 'flex';
-    standardStatsEl.style.marginTop = "35px"; 
+    standardStatsEl.style.marginTop = "35px";
     standardStatsEl.style.flexDirection = "column";
     standardStatsEl.style.alignItems = "flex-start";
     standardStatsEl.style.gap = "15px";
-    
+
     if (heroPtsEl && heroPtsEl.parentElement) {
       heroPtsEl.parentElement.style.fontSize = "4.5rem";
       heroPtsEl.parentElement.style.lineHeight = "0.9";
@@ -2125,108 +2263,106 @@ function previewDriverBeforeSelect(fullName) {
       heroPosEl.style.textAlign = "left";
     }
   }
-  
+
   if (predictSectionEl) predictSectionEl.style.display = 'block';
 
   renderDriverRadar(fullName, info.color);
 
   const btn = document.getElementById('btnConfirmHeroPick');
   const slotLabels = { 'pos1': 'P1', 'pos2': 'P2', 'pos3': 'P3', 'pos4': 'P4', 'posFL': 'FASTEST LAP' };
-  
+
   if (btn && currentSelectingSlot) {
-    document.getElementById('lblHeroSlot').innerText = slotLabels[currentSelectingSlot] || '';
+    const lblSpan = document.getElementById('lblHeroSlot');
+    if (lblSpan) {
+      lblSpan.innerText = slotLabels[currentSelectingSlot] || '';
+    } else {
+      btn.innerHTML = '<i class="fa-solid fa-check-circle me-2"></i>SELECT FOR <span id="lblHeroSlot">' + (slotLabels[currentSelectingSlot] || '') + '</span>';
+    }
+
     btn.onclick = function() {
+      // เลือกนักแข่งคนปัจจุบันลงช่องที่เลือกทันที (รองรับทายซ้ำได้ทุกช่อง) แล้วพาไปช่องถัดไปใน 0ms!
+      confirmSelectDriver(currentHeroDriver, false);
+
       const heroModalEl = document.getElementById('driverHeroModal');
       const heroInst = bootstrap.Modal.getInstance(heroModalEl) || window.driverHeroModalInstance;
-      
-      if (heroModalEl && heroInst) {
-        heroModalEl.addEventListener('hidden.bs.modal', function onHeroHidden() {
-          confirmSelectDriver(fullName);
-        }, { once: true });
-        heroInst.hide();
-      } else {
-        confirmSelectDriver(fullName);
-      }
+      if (heroInst) heroInst.hide();
     };
   }
 
-  const showHeroAndAnimate = function() {
-    const heroModalEl = document.getElementById('driverHeroModal');
-    if (!window.driverHeroModalInstance) {
-      window.driverHeroModalInstance = new bootstrap.Modal(heroModalEl);
-    }
+  const heroModalEl = document.getElementById('driverHeroModal');
+  if (!window.driverHeroModalInstance) {
+    window.driverHeroModalInstance = new bootstrap.Modal(heroModalEl);
+  }
+  if (!heroModalEl.classList.contains('show')) {
+    if (heroPtsEl) heroPtsEl.innerText = "0";
     window.driverHeroModalInstance.show();
-
-    setTimeout(() => {
-      if (typeof animateCountUp === 'function' && heroPtsEl) {
-        animateCountUp(heroPtsEl, currentPts, 1800);
-      } else if (heroPtsEl) {
-        heroPtsEl.innerText = currentPts;
-      }
-    }, 150);
-  };
-
-  const gridInst = driverSelectorModalInstance || bootstrap.Modal.getInstance(gridModalEl);
-  if (gridModalEl && gridModalEl.classList.contains('show') && gridInst) {
-    gridModalEl.addEventListener('hidden.bs.modal', function onGridHidden() {
-      showHeroAndAnimate();
-    }, { once: true });
-    gridInst.hide();
+    setTimeout(function() { animateCountUp(heroPtsEl, currentPts, 1400); }, 100);
   } else {
-    showHeroAndAnimate();
+    animateCountUp(heroPtsEl, currentPts, 550);
   }
 }
 
-function openDriverHero(fullName, rowEl) {
-  triggerHaptic();
+function openDriverHero(fullName, rowEl, isSwiping) {
+  if (!isSwiping) triggerHaptic();
   const info = DRIVER_INFO[fullName];
-  if(!info) return;
+  if (!info) return;
 
-  const pts = rowEl.querySelector('.col-pts').innerText;
-  const pos = rowEl.querySelector('.col-pos').innerText;
+  currentHeroDriver = fullName;
+  isHeroInPredictMode = false;
+
+  const radioBtn = document.getElementById('btnTeamRadio');
+  if (radioBtn) radioBtn.style.setProperty('display', 'none', 'important');
+
+  let pts = "0";
+  let pos = "-";
+  if (rowEl) {
+    pts = rowEl.querySelector('.col-pts').innerText;
+    pos = rowEl.querySelector('.col-pos').innerText;
+  } else {
+    document.querySelectorAll('#driverStandingsList .f1-standings-row').forEach(function(r) {
+      const onclickAttr = r.getAttribute('onclick') || '';
+      if (onclickAttr.includes(fullName)) {
+        pts = r.querySelector('.col-pts').innerText;
+        pos = r.querySelector('.col-pos').innerText;
+      }
+    });
+  }
+
   const parts = fullName.split(' ');
-  const firstName = parts[0];
-  const lastName = parts.slice(1).join(' ');
-
-  document.getElementById('heroDriverFirstName').innerText = firstName;
-  document.getElementById('heroDriverLastName').innerText = lastName;
+  document.getElementById('heroDriverFirstName').innerText = parts[0];
+  document.getElementById('heroDriverLastName').innerText = parts.slice(1).join(' ');
   document.getElementById('heroTeamName').innerText = info.team;
   document.getElementById('heroTeamLogo').src = getDriveDirectLink(TEAM_LOGOS[info.team] || '');
-  document.getElementById('heroDriverImg').src = getDriveDirectLink(info.heroImg || info.img); 
-  
+  document.getElementById('heroDriverImg').src = getDriveDirectLink(info.heroImg || info.img);
+
   const heroPtsEl = document.getElementById('heroPoints');
   const heroPosEl = document.getElementById('heroPos');
   if (heroPosEl) heroPosEl.innerText = 'P' + pos;
 
   const standardStatsEl = document.getElementById('heroStandardStats');
   const predictSectionEl = document.getElementById('heroPredictSection');
-  
+
   if (standardStatsEl) {
     standardStatsEl.style.display = 'block';
     standardStatsEl.style.marginTop = "0px";
-    
-    if (heroPtsEl && heroPtsEl.parentElement) {
-      heroPtsEl.parentElement.style.fontSize = ""; 
-    }
-    if (heroPosEl) {
-      heroPosEl.style.fontSize = ""; 
-    }
+    if (heroPtsEl && heroPtsEl.parentElement) heroPtsEl.parentElement.style.fontSize = "";
+    if (heroPosEl) heroPosEl.style.fontSize = "";
   }
-  
   if (predictSectionEl) predictSectionEl.style.display = 'none';
 
-  if (heroPtsEl) heroPtsEl.innerText = "0"; 
-  
-  setTimeout(() => {
-    animateCountUp(heroPtsEl, pts, 2200); 
-  }, 10); 
+  document.getElementById('heroBgColor').style.background = 'linear-gradient(to bottom, #0a0e1c 0%, ' + info.color + '40 15%, #0a0e1c 65%)';
 
-  document.getElementById('heroBgColor').style.background = `linear-gradient(to bottom, #0a0e1c 0%, ${info.color}40 15%, #0a0e1c 65%)`;
-
+  const heroModalEl = document.getElementById('driverHeroModal');
   if (!window.driverHeroModalInstance) {
-    window.driverHeroModalInstance = new bootstrap.Modal(document.getElementById('driverHeroModal'));
+    window.driverHeroModalInstance = new bootstrap.Modal(heroModalEl);
   }
-  window.driverHeroModalInstance.show();
+  if (!heroModalEl.classList.contains('show')) {
+    if (heroPtsEl) heroPtsEl.innerText = "0";
+    window.driverHeroModalInstance.show();
+    setTimeout(function() { animateCountUp(heroPtsEl, pts, 1800); }, 20);
+  } else {
+    animateCountUp(heroPtsEl, pts, 600);
+  }
 }
 
 // ==========================================
