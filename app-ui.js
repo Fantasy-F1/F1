@@ -450,11 +450,14 @@ function showTab(tabId, el) {
   document.getElementById(tabId).style.display = 'block'; 
   el.classList.add('active'); 
 
-  // 🎯 ควบคุมการแสดงผลปุ่ม Radio (แสดงเฉพาะหน้าทายผล tab-pred)
+    // 🎯 ควบคุมการแสดงผลปุ่ม Radio + เตรียมข้อมูลกราฟ 7 สนามล่วงหน้าแบบไม่แย่งคิว API
   const radioBtn = document.getElementById('btnTeamRadio');
   if (radioBtn) {
     if (tabId === 'tab-pred') {
       radioBtn.style.setProperty('display', 'flex', 'important');
+      if (typeof loadRecent7RacesHistory === 'function' && !recent7RacesCache && !recent7RacesPromise) {
+        setTimeout(function() { loadRecent7RacesHistory(); }, 400);
+      }
     } else {
       radioBtn.style.setProperty('display', 'none', 'important');
       closeTeamRadio();
@@ -2210,78 +2213,351 @@ function navigateHeroDriver(direction) {
   }
 }
 
-// 2. กราฟเรดาร์แบบเดิมเป๊ะ 100% พร้อมขยับเส้นกราฟนุ่มนวลเวลาปัดเทียบนักแข่ง
-function renderDriverRadar(fullName, teamColor) {
-  const canvasEl = document.getElementById('driverRadarChart');
+// =========================================================
+// 📈 LAST 7 RACES FINISHING TREND ENGINE (P1-P4 ZONE + TEAM COLOR)
+// =========================================================
+let recent7RacesCache = null;
+let recent7RacesPromise = null;
+
+const RACE_SHORT_CODES = {
+  "australia": "AUS", "australian": "AUS", "china": "CHN", "chinese": "CHN",
+  "japan": "JPN", "japanese": "JPN", "bahrain": "BHR", "saudi": "SAU",
+  "miami": "MIA", "emilia": "IMO", "imola": "IMO", "monaco": "MON",
+  "canada": "CAN", "canadian": "CAN", "barcelona": "BCN", "spain": "ESP", "spanish": "ESP", "madrid": "MAD",
+  "austria": "AUT", "austrian": "AUT", "britain": "GBR", "british": "GBR", "silverstone": "GBR",
+  "belgium": "BEL", "belgian": "BEL", "hungary": "HUN", "hungarian": "HUN",
+  "netherlands": "NED", "dutch": "NED", "italy": "ITA", "italian": "ITA", "monza": "ITA",
+  "azerbaijan": "AZE", "baku": "AZE", "singapore": "SIN", "austin": "USA", "united states": "USA",
+  "mexico": "MEX", "mexican": "MEX", "brazil": "BRA", "são paulo": "BRA", "sao paulo": "BRA",
+  "las vegas": "LVG", "vegas": "LVG", "qatar": "QAT", "abu dhabi": "ABU"
+};
+
+function getShortRaceCode(nameStr, fallbackIdx) {
+  const lower = String(nameStr || "").toLowerCase();
+  for (const key in RACE_SHORT_CODES) {
+    if (lower.includes(key)) return RACE_SHORT_CODES[key];
+  }
+  const cleaned = String(nameStr || "").replace(/grand prix/gi, "").trim();
+  return cleaned ? cleaned.substring(0, 3).toUpperCase() : ("R" + fallbackIdx);
+}
+
+// ดึงประวัติอันดับจบจริง 7 สนามล่าสุดของนักแข่งทั้งกริด (โหลดครั้งเดียว จำแคช 30 นาที ปัดลื่น 0ms)
+async function loadRecent7RacesHistory() {
+  if (recent7RacesCache) return recent7RacesCache;
+  if (recent7RacesPromise) return recent7RacesPromise;
+
+  // เช็กแคชใน localStorage ก่อน (อายุแคช 30 นาที)
+  try {
+    const raw = localStorage.getItem("f1_last7_form_v1");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.timestamp && (Date.now() - parsed.timestamp < 1800000) && parsed.labels?.length > 0) {
+        recent7RacesCache = parsed;
+        return parsed;
+      }
+    }
+  } catch (e) {}
+
+  recent7RacesPromise = (async () => {
+    try {
+      const [meetings, raceSessions] = await Promise.all([
+        fetchOpenF1Cached("https://api.openf1.org/v1/meetings?year=2026", 900000).catch(() => []),
+        fetchOpenF1Cached("https://api.openf1.org/v1/sessions?year=2026&session_name=Race", 900000)
+      ]);
+
+      const meetingMap = {};
+      (Array.isArray(meetings) ? meetings : []).forEach(m => {
+        if (m && m.meeting_key) meetingMap[m.meeting_key] = m.meeting_name || m.location || "";
+      });
+
+      const now = new Date();
+      const finishedRaces = (Array.isArray(raceSessions) ? raceSessions : [])
+        .filter(s => s && s.date_start && new Date(s.date_start) <= now)
+        .sort((a, b) => new Date(a.date_start) - new Date(b.date_start));
+
+      const last7 = finishedRaces.slice(-7);
+      if (last7.length === 0) return { labels: [], driverMap: {} };
+
+      // ดึงรายชื่อเลขรถจากสนามล่าสุดเพื่อแมพเข้ากับชื่อนักแข่งในแอป
+      const latestKey = last7[last7.length - 1].session_key;
+      const latestDrivers = await fetchOpenF1Cached(`https://api.openf1.org/v1/drivers?session_key=${latestKey}`, 900000).catch(() => []);
+      const numToAppDriver = {};
+      (Array.isArray(latestDrivers) ? latestDrivers : []).forEach(d => {
+        if (d && d.driver_number != null && typeof resolveAppDriverName === "function") {
+          numToAppDriver[d.driver_number] = resolveAppDriverName(d);
+        }
+      });
+
+      const labels = [];
+      const driverMap = {};
+      Object.keys(DRIVER_INFO || {}).forEach(name => { driverMap[name] = []; });
+
+      for (let i = 0; i < last7.length; i++) {
+        const s = last7[i];
+        const mName = meetingMap[s.meeting_key] || s.country_name || s.location || "";
+        labels.push(getShortRaceCode(mName, i + 1));
+
+        const [resList, sDrivers] = await Promise.all([
+          fetchOpenF1Cached(`https://api.openf1.org/v1/session_result?session_key=${s.session_key}`, 1800000).catch(() => []),
+          fetchOpenF1Cached(`https://api.openf1.org/v1/drivers?session_key=${s.session_key}`, 1800000).catch(() => [])
+        ]);
+
+        const localNumMap = Object.assign({}, numToAppDriver);
+        (Array.isArray(sDrivers) ? sDrivers : []).forEach(d => {
+          if (d && d.driver_number != null && typeof resolveAppDriverName === "function") {
+            localNumMap[d.driver_number] = resolveAppDriverName(d);
+          }
+        });
+
+        const recordedThisRace = new Set();
+        (Array.isArray(resList) ? resList : []).forEach(item => {
+          const appName = localNumMap[item.driver_number];
+          if (!appName || !driverMap[appName] || recordedThisRace.has(appName)) return;
+          recordedThisRace.add(appName);
+
+          const isDnf = !!(item.dnf || item.dns || item.dsq || item.position == null);
+          const statusTag = item.dsq ? "DSQ" : (item.dns ? "DNS" : (item.dnf ? "DNF" : null));
+          const posNum = (!isDnf && item.position != null) ? Number(item.position) : 22;
+
+          driverMap[appName].push({
+            pos: posNum,
+            status: statusTag || ("P" + posNum),
+            isDnf: isDnf
+          });
+        });
+
+        // กรณีนักแข่งไม่ได้ลงแข่งในสนามนั้น (DNS / สำรอง)
+        Object.keys(driverMap).forEach(name => {
+          if (!recordedThisRace.has(name)) {
+            driverMap[name].push({ pos: null, status: "-", isDnf: false });
+          }
+        });
+      }
+
+      const payload = { labels, driverMap, timestamp: Date.now() };
+      recent7RacesCache = payload;
+      try { localStorage.setItem("f1_last7_form_v1", JSON.stringify(payload)); } catch (e) {}
+      return payload;
+    } catch (err) {
+      console.warn("Load 7-race trend error:", err);
+      return { labels: [], driverMap: {} };
+    } finally {
+      recent7RacesPromise = null;
+    }
+  })();
+
+  return recent7RacesPromise;
+}
+
+// แปลงรหัสสี Hex เป็น rgba เพื่อทำแสงฟุ้งละลายกลืนกับพื้นหลังแบบไร้ขอบตัด
+function hexToRgba(hex, alpha) {
+  const clean = String(hex || "#0dcaf0").replace("#", "").trim();
+  const full = clean.length === 3 ? clean.split("").map(c => c + c).join("") : clean;
+  const num = parseInt(full, 16);
+  if (isNaN(num)) return `rgba(13, 202, 240, ${alpha})`;
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+}
+
+// ปลั๊กอินวาดเส้นประ TOP 4, แสง Neon Glow รอบเส้นกราฟ และป้ายตำแหน่งเหนือจุด
+const f1TrendBroadcastPlugin = {
+  id: "f1TrendBroadcastPlugin",
+  beforeDatasetsDraw(chart) {
+    const { ctx, chartArea, scales: { y } } = chart;
+    if (!chartArea || !y) return;
+
+    const yP4 = y.getPixelForValue(4.35);
+    if (yP4 >= chartArea.top && yP4 <= chartArea.bottom) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([3, 5]);
+      ctx.strokeStyle = "rgba(237, 180, 11, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.moveTo(chartArea.left, yP4);
+      ctx.lineTo(chartArea.right, yP4);
+      ctx.stroke();
+
+      ctx.font = "600 9px 'Rajdhani', sans-serif";
+      ctx.fillStyle = "rgba(237, 180, 11, 0.5)";
+      ctx.textAlign = "right";
+      ctx.fillText("TOP 4 LINE", chartArea.right, yP4 - 4);
+      ctx.restore();
+    }
+
+    // เปิดเอฟเฟกต์แสง Neon Glow สีประจำทีมให้ตัวเส้นกราฟดูนุ่มนวลมีมิติ
+    const borderColor = chart.data.datasets[0]?.borderColor || "#0dcaf0";
+    ctx.save();
+    ctx.shadowColor = hexToRgba(borderColor, 0.55);
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+  },
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    // ปิด state ของ Neon Glow ก่อนวาดตัวหนังสือ
+    ctx.restore();
+
+    const meta = chart.getDatasetMeta(0);
+    const rawMeta = chart.data.datasets[0]?.rawRecords || [];
+    if (!meta || !meta.data) return;
+
+    ctx.save();
+    ctx.font = "700 11px 'Share Tech Mono', 'Rajdhani', sans-serif";
+    ctx.textAlign = "center";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+    ctx.shadowBlur = 6;
+
+    meta.data.forEach((pt, idx) => {
+      const rec = rawMeta[idx];
+      if (!rec || rec.pos === null) return;
+
+      if (rec.isDnf) {
+        ctx.fillStyle = "#ff4d4f";
+      } else if (rec.pos <= 4) {
+        ctx.fillStyle = "#EDB40B";
+      } else {
+        ctx.fillStyle = "#f1f5f9";
+      }
+      ctx.fillText(rec.status, pt.x, pt.y - 10);
+    });
+    ctx.restore();
+  }
+};
+
+async function renderDriverRadar(fullName, teamColor) {
+  const canvasEl = document.getElementById("driverRadarChart");
   if (!canvasEl) return;
 
-  const statsData = DRIVER_STATS[fullName] || DRIVER_STATS["default"];
   const colorCode = teamColor || "#0dcaf0";
+  const badgeEl = document.getElementById("driverTop4Summary");
 
-  if (heroRadarChartInstance && heroRadarChartInstance.canvas === canvasEl) {
-    const ds = heroRadarChartInstance.data.datasets[0];
-    ds.label = fullName;
-    ds.data = statsData;
-    ds.backgroundColor = colorCode + '40';
-    ds.borderColor = colorCode;
-    ds.pointBorderColor = colorCode;
-    ds.pointHoverBackgroundColor = colorCode;
-    heroRadarChartInstance.options.plugins.tooltip.bodyColor = colorCode;
-    heroRadarChartInstance.options.plugins.tooltip.borderColor = colorCode;
-    heroRadarChartInstance.update();
-    return;
+  const trendData = await loadRecent7RacesHistory();
+  if (currentHeroDriver && currentHeroDriver !== fullName) return;
+
+  const labels = trendData.labels || [];
+  const records = (trendData.driverMap && trendData.driverMap[fullName]) ? trendData.driverMap[fullName] : [];
+
+  const top4Count = records.filter(r => r && !r.isDnf && r.pos !== null && r.pos <= 4).length;
+  if (badgeEl) {
+    badgeEl.textContent = labels.length > 0 ? `TOP 4: ${top4Count}/${labels.length}` : "LOADING...";
   }
 
-  if (heroRadarChartInstance) heroRadarChartInstance.destroy();
+  const validPositions = records.filter(r => r && r.pos !== null).map(r => r.pos);
+  const worstPos = validPositions.length > 0 ? Math.max(...validPositions) : 10;
+  const dynamicMaxY = Math.min(22, Math.max(7, worstPos + 2));
 
-  const ctx = canvasEl.getContext('2d');
+  const plotValues = records.map(r => (r && r.pos !== null) ? r.pos : null);
+  const pointBgColors = records.map(r => {
+    if (!r || r.pos === null) return "transparent";
+    if (r.isDnf) return "#ff2a2a";
+    if (r.pos === 1) return "#EDB40B";
+    return "#0d0e12";
+  });
+  const pointBorderColors = records.map(r => {
+    if (!r || r.pos === null) return "transparent";
+    if (r.isDnf) return "#ff2a2a";
+    return colorCode;
+  });
+
+  if (heroRadarChartInstance) {
+    heroRadarChartInstance.destroy();
+    heroRadarChartInstance = null;
+  }
+
+  const ctx = canvasEl.getContext("2d");
+
   heroRadarChartInstance = new Chart(ctx, {
-    type: 'radar',
+    type: "line",
     data: {
-      labels: ['Quali', 'Racecraft', 'Tyre Mgmt', 'Consistency', 'Wet', 'Form'],
+      labels: labels,
       datasets: [{
         label: fullName,
-        data: statsData,
-        backgroundColor: colorCode + '40',
+        data: plotValues,
+        rawRecords: records,
         borderColor: colorCode,
-        pointBackgroundColor: '#000',
-        pointBorderColor: colorCode,
-        pointHoverBackgroundColor: colorCode,
-        pointHoverBorderColor: '#fff',
-        borderWidth: 2,
-        pointRadius: 3
+        // ✅ คำนวณ Gradient ตามขอบเขตจริงของเส้นกราฟ และเฟดจางหายเป็น 0% ด้านล่างแบบเนียนกริบไร้กรอบ!
+          backgroundColor: function(context) {
+          const chart = context.chart;
+          const { ctx: c, chartArea } = chart;
+          if (!chartArea) return hexToRgba(colorCode, 0.12);
+          const meta = chart.getDatasetMeta(0);
+          let topY = chartArea.top;
+          if (meta && meta.data && meta.data.length > 0) {
+            const ys = meta.data.map(p => p.y).filter(v => typeof v === "number" && !isNaN(v));
+            if (ys.length > 0) topY = Math.min(...ys);
+          }
+          const grad = c.createLinearGradient(0, topY, 0, chartArea.bottom);
+          grad.addColorStop(0, hexToRgba(colorCode, 0.30));
+          grad.addColorStop(0.45, hexToRgba(colorCode, 0.10));
+          grad.addColorStop(0.82, hexToRgba(colorCode, 0.01));
+          grad.addColorStop(1, "rgba(10, 14, 28, 0)");
+          return grad;
+        },
+        borderWidth: 3,
+        fill: "start",
+        tension: 0.38,
+        spanGaps: true,
+        clip: false,
+        pointBackgroundColor: pointBgColors,
+        pointBorderColor: pointBorderColors,
+        pointBorderWidth: 2.4,
+        pointRadius: 4.5,
+        pointHoverRadius: 6.5
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 350 },
+      layout: {
+        padding: { top: 24, right: 16, left: 16, bottom: 4 }
+      },
       scales: {
-        r: {
-          angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-          grid: { color: 'rgba(255, 255, 255, 0.1)' },
-          pointLabels: { color: '#94a3b8', font: { family: 'Rajdhani', size: 11, weight: 'bold' } },
-          ticks: { display: false, min: 50, max: 100 }
+        x: {
+          border: { display: false },
+          grid: { display: false, drawBorder: false },
+          ticks: {
+            color: "rgba(226, 232, 240, 0.85)",
+            font: { family: "Rajdhani", size: 11, weight: "700" },
+            padding: 6
+          }
+        },
+        y: {
+          display: false,
+          reverse: true,
+          min: 1,
+          max: dynamicMaxY,
+          border: { display: false },
+          grid: { display: false, drawBorder: false },
+          ticks: { display: false }
         }
       },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(10, 12, 16, 0.95)',
-          titleColor: '#fff',
-          bodyColor: colorCode,
-          titleFont: { family: 'Rajdhani', size: 14, weight: 'bold' },
-          bodyFont: { family: 'Rajdhani', size: 13, weight: 'bold' },
+          backgroundColor: "rgba(10, 12, 16, 0.92)",
+          titleColor: "#ffffff",
+          bodyColor: "#EDB40B",
+          titleFont: { family: "Rajdhani", size: 13, weight: "bold" },
+          bodyFont: { family: "Share Tech Mono", size: 13 },
           borderColor: colorCode,
           borderWidth: 1,
           displayColors: false,
           callbacks: {
-            label: function(context) { return context.raw + ' / 100'; }
+            title: function(items) {
+              return "GP: " + items[0].label;
+            },
+            label: function(context) {
+              const rec = context.dataset.rawRecords?.[context.dataIndex];
+              if (!rec || rec.pos === null) return "Did Not Participate";
+              return rec.isDnf ? `Status: ${rec.status}` : `Finish: P${rec.pos}`;
+            }
           }
         }
       }
-    }
+    },
+    plugins: [f1TrendBroadcastPlugin]
   });
 }
+
 
 // 3. Clean Editorial Hero (Layout แต้มและปุ่มเหลืองแบบเดิมเป๊ะ + สลับหน้าไว Zero-Lag + ทายซ้ำได้ทุกช่อง)
 function previewDriverBeforeSelect(fullName, isSwiping) {
