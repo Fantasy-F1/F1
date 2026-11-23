@@ -4296,14 +4296,61 @@ body {
    ✨ SENIOR UI/UX POLISH & RESPONSIVE FIXES (v6)
    ========================================================= */
 
-/* ปรับขนาดตัวอักษรในหน้า Driver Hero ไม่ให้ล้นบนจอมือถือขนาดเล็ก */
+/* 1. ชื่อนักแข่งด้านบน */
 .hero-driver-title {
-  font-size: clamp(2.4rem, 9vw, 3.8rem) !important;
+  font-size: 3.8rem !important;
 }
 
+/* 2. ขยายขนาดคะแนน (POINTS) และอันดับ (CHAMPIONSHIP) ให้ใหญ่สะใจ */
 .stat-value-massive {
-  font-size: clamp(3.8rem, 16vw, 6.5rem) !important;
+  font-size: 120px !important; /* ⬅️ ปรับเพิ่ม-ลดขนาดตัวเลขตรงนี้ได้ตามชอบ (เดิม 110px) */
+  line-height: 0.82 !important;
 }
+
+.stat-label-mini {
+  font-size: 0.95rem !important; /* ขยายหัวข้อ POINTS / CHAMPIONSHIP ให้สมดุลกัน */
+  margin-bottom: 6px !important;
+}
+
+.stat-unit {
+  font-size: 2.1rem !important; /* ขยายคำว่า PTS */
+}
+
+/* 3. ดันชุดคะแนนและอันดับให้เลื่อนลอยขึ้นมาด้านบน (เฉพาะโหมดดูสถิติเต็มจอ) */
+#heroStandardStats {
+  padding-bottom: calc(65px + env(safe-area-inset-bottom, 20px)) !important; /* ⬅️ เพิ่มเลข 65px ได้ถ้าอยากให้ลอยสูงขึ้นอีก */
+}
+
+/* 4. ขยับตัวนักแข่งขึ้นเล็กน้อยเพื่อให้รับกับตัวเลขที่ลอยสูงขึ้น */
+.hero-driver-cutout {
+  margin-bottom: 24vh !important; /* ⬆️⬇️ ขยับขึ้น-ลง: เพิ่มเลข = ลอยสูงขึ้น / ลดเลข (เช่น 18vh) = เลื่อนต่ำลง */
+}
+
+/* 5. โหมดทายผล (มีกราฟ Radar): ย่อขนาดคะแนนและอันดับลงอัตโนมัติ ไม่ให้เบียดกราฟ */
+#driverHeroModal:has(#heroPredictSection[style*="block"]) #heroStandardStats {
+  margin-top: 8px !important; 
+  padding-bottom: 6px !important;
+}
+
+#driverHeroModal:has(#heroPredictSection[style*="block"]) #heroStandardStats > div {
+  gap: 4px !important;
+}
+
+#driverHeroModal:has(#heroPredictSection[style*="block"]) .stat-value-massive {
+  font-size: 52px !important; /* ปรับขนาดตัวเลขโหมดทายผลตรงนี้ เช่น 42px - 60px */
+  line-height: 0.9 !important;
+}
+
+#driverHeroModal:has(#heroPredictSection[style*="block"]) .stat-unit {
+  font-size: 1.15rem !important;
+}
+
+#driverHeroModal:has(#heroPredictSection[style*="block"]) .stat-label-mini {
+  font-size: 0.72rem !important;
+  margin-bottom: 2px !important;
+}
+
+
 
 /* จัดกึ่งกลางหน้าโหลดเริ่มต้นให้พอดีกับกรอบมือถือ */
 #globalLoader.skeleton-wrapper {
